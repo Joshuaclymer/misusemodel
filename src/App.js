@@ -149,7 +149,7 @@ function App() {
     const slope = (y2 - y1) / (2 * h); // This is dy/d(ln(x))
     
     // Find the maximum possible extension in both directions
-    let maxLogExtension = Math.log(100/lastPoint.queries);
+    let maxLogExtension = Math.log(12/lastPoint.queries);
     let endTime = lastPoint.time + slope * maxLogExtension;
     
     // If we hit y bounds before x bounds, recalculate the extension
@@ -175,8 +175,8 @@ function App() {
   useEffect(() => {
     const initialControlPoints = [
       { queries: 1, time: 0, fixed: true },
-      { queries: 10, time: 450 },
-      { queries: 100, time: 750 }
+      { queries: 3, time: 450 },
+      { queries: 9, time: 750 }
     ];
     setQueryTimeData(initialControlPoints);
   }, []);
@@ -199,14 +199,14 @@ function App() {
       const mouseY = event.clientY - svgRect.top - margin.top;
 
       const xScale = d3.scaleLog()
-        .domain([1, 100])
+        .domain([1, 12])
         .range([0, width]);
 
       const yScale = d3.scaleLinear()
         .domain([0, 1000])
         .range([height, 0]);
 
-      const newQueries = Math.max(1, Math.min(100, xScale.invert(mouseX)));
+      const newQueries = Math.max(1, Math.min(12, xScale.invert(mouseX)));
       const newTime = Math.max(0, Math.min(1000, yScale.invert(mouseY)));
 
       // Round to 2 decimal places to avoid floating point issues
@@ -777,18 +777,18 @@ function App() {
                     dataKey="queries"
                     type="number"
                     scale="log"
-                    domain={[1, 100]}
+                    domain={[1, 12]}
                     label={{
-                      value: "Number of Queries",
+                      value: "Time",
                       position: "bottom",
                       offset: 20,
                     }}
-                    ticks={[1, 2, 5, 10, 20, 50, 100]} // Nice log scale ticks
+                    ticks={[1,2,4,8]} // Nice log scale ticks
                   />
                   <YAxis
                     domain={[0, 1000]}
                     label={{
-                      value: "Num queries",
+                      value: "Number of Queries Executed",
                       angle: -90,
                       position: "center",
                       dx: -35,
