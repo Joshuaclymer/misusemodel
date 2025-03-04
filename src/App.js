@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import jStat from "jstat";
 import * as math from "mathjs";
+import * as d3 from "d3";
 import "./App.css";
 
 const PlotParameters = ({ 
@@ -116,6 +117,120 @@ function App() {
   const [preDistributionData, setPreDistributionData] = useState([]);
   const [postDistributionData, setPostDistributionData] = useState([]);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [queryTimeData, setQueryTimeData] = useState([]);
+  const [draggedPointIndex, setDraggedPointIndex] = useState(null);
+
+  // Calculate tangent line at the last point
+  const getTangentLine = (points) => {
+    if (points.length < 2) return [];
+    
+    const lastPoint = points[points.length - 1];
+    const prevPoint = points[points.length - 2];
+    
+    // Calculate slope in log space
+    const dx = Math.log(lastPoint.queries) - Math.log(prevPoint.queries);
+    const dy = lastPoint.time - prevPoint.time;
+    const slope = dy / dx; // dy/d(ln(x))
+    
+    // Find the maximum possible extension in both directions
+    let maxLogExtension = Math.log(100/lastPoint.queries);
+    let endTime = lastPoint.time + slope * maxLogExtension;
+    
+    // If we hit y bounds before x bounds, recalculate the extension
+    if (endTime > 100) {
+      maxLogExtension = (100 - lastPoint.time) / slope;
+    } else if (endTime < 0) {
+      maxLogExtension = -lastPoint.time / slope;
+    }
+    
+    // Ensure extension is positive
+    maxLogExtension = Math.max(0, maxLogExtension);
+    
+    return [
+      lastPoint,
+      {
+        queries: lastPoint.queries * Math.exp(maxLogExtension),
+        time: lastPoint.time + slope * maxLogExtension
+      }
+    ];
+  };
+
+  // Generate initial query time data with fewer points for easier manipulation
+  useEffect(() => {
+    const initialControlPoints = [
+      { queries: 1, time: 0, fixed: true },
+      { queries: 10, time: 45 },
+      { queries: 100, time: 75 }
+    ];
+    setQueryTimeData(initialControlPoints);
+  }, []);
+
+  // Handle drag interactions
+  useEffect(() => {
+    const handleMouseMove = (event) => {
+      if (draggedPointIndex === null) return;
+
+      event.preventDefault();
+      const svgElement = document.querySelector('.query-time-chart svg');
+      if (!svgElement) return;
+
+      const svgRect = svgElement.getBoundingClientRect();
+      const margin = { left: 50, right: 50, top: 5, bottom: 25 };
+      const width = 400 - margin.left - margin.right;
+      const height = 350 - margin.top - margin.bottom;
+
+      const mouseX = event.clientX - svgRect.left - margin.left;
+      const mouseY = event.clientY - svgRect.top - margin.top;
+
+      const xScale = d3.scaleLog()
+        .domain([1, 100])
+        .range([0, width]);
+
+      const yScale = d3.scaleLinear()
+        .domain([0, 100])
+        .range([height, 0]);
+
+      const newQueries = Math.max(1, Math.min(100, xScale.invert(mouseX)));
+      const newTime = Math.max(0, Math.min(100, yScale.invert(mouseY)));
+
+      // Round to 2 decimal places to avoid floating point issues
+      const roundedQueries = Math.round(newQueries * 100) / 100;
+      const roundedTime = Math.round(newTime * 100) / 100;
+
+      const newData = [...queryTimeData];
+      const currentPoint = newData[draggedPointIndex];
+      
+      // Only update if the change is significant enough and point is not fixed
+      if (!currentPoint.fixed && (Math.abs(currentPoint.queries - newQueries) > 0.5 || Math.abs(currentPoint.time - newTime) > 0.5)) {
+        newData[draggedPointIndex] = { queries: roundedQueries, time: roundedTime };
+        setQueryTimeData(newData);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setDraggedPointIndex(null);
+      // Sort points by x-value after drag ends
+      setQueryTimeData(prev => [...prev].sort((a, b) => a.queries - b.queries));
+    };
+
+    if (draggedPointIndex !== null) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      // Prevent text selection while dragging
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.userSelect = '';
+    };
+  }, [draggedPointIndex, queryTimeData]);
+
+  const handleDragStart = (event, index) => {
+    event.preventDefault();
+    setDraggedPointIndex(index);
+  };
 
   // Pre-mitigation parameters
   const [preMitigationParams, setPreMitigationParams] = useState({
@@ -434,19 +549,15 @@ function App() {
           <div
             ref={containerRef}
             style={{ display: "flex", flexDirection: "column", maxWidth: "1400px", margin: "0 auto", gap: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "center", gap: "40px" }}>
-              <h2 style={{ flex: 1, textAlign: "center", margin: 0, maxWidth: "500px" }}>Baseline</h2>
-              <h2 style={{ flex: 1, textAlign: "center", margin: 0, maxWidth: "500px" }}>Pre-Mitigation Deployment</h2>
-            </div>
-            
-            <div style={{ display: "flex", gap: "40px" }}>
+            <div style={{ display: "flex", gap: "40px", justifyContent: "center" }}>
               {/* Left Column */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "30px" }}>
+              <div style={{ width: "400px", display: "flex", flexDirection: "column", alignItems: "center", gap: "30px" }}>
+                <h2 style={{ margin: "0 0 20px 0", width: "100%", maxWidth: "500px", textAlign: "center" }}>Baseline</h2>
               <PlotParameters
                 label="Baseline Parameters"
                 parameters={preMitigationParams}
                 onParametersChange={setPreMitigationParams}
-                style={{ width: "100%", maxWidth: "500px" }}
+                style={{ width: "100%" }}
                 anchorMonths={anchor_months}
               />
 
@@ -455,7 +566,7 @@ function App() {
                   Distribution
                 </h3>
                 <LineChart
-                  width={Math.min(800, (containerWidth - 80) / 2)}
+                  width={400}
                   height={350}
                   margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
                   data={preDistributionData}
@@ -536,12 +647,13 @@ function App() {
             </div>
 
             {/* Right Column */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "30px" }}>
+            <div style={{ width: "400px", display: "flex", flexDirection: "column", alignItems: "center", gap: "30px" }}>
+              <h2 style={{ margin: "0 0 20px 0", width: "100%", maxWidth: "500px", textAlign: "center" }}>Pre-Mitigation Deployment</h2>
               <PlotParameters
                 label="Pre-Mitigation Deployment Parameters"
                 parameters={postMitigationParams}
                 onParametersChange={setPostMitigationParams}
-                style={{ width: "100%", maxWidth: "500px" }}
+                style={{ width: "100%" }}
                 anchorMonths={anchor_months}
               />
 
@@ -550,7 +662,7 @@ function App() {
                   Distribution
                 </h3>
                 <LineChart
-                  width={Math.min(800, (containerWidth - 80) / 2)}
+                  width={400}
                   height={350}
                   margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
                   data={postDistributionData}
@@ -627,6 +739,81 @@ function App() {
                 <div style={{ fontSize: "24px", fontWeight: "bold" }}>
                   {calculateExpectedFatalities(postDistributionData, postMitigationParams).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                 </div>
+              </div>
+            </div>
+
+            {/* Query Time Plot */}
+            <div style={{ width: "400px", display: "flex", flexDirection: "column", alignItems: "center", gap: "30px" }}>
+              <h2 style={{ margin: "0 0 20px 0", width: "100%", maxWidth: "500px", textAlign: "center" }}>Query Performance</h2>
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
+                  Query Time vs Number of Queries
+                </h3>
+                <LineChart
+                  className="query-time-chart"
+                  width={400}
+                  height={350}
+                  margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
+                  data={queryTimeData}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="queries"
+                    type="number"
+                    scale="log"
+                    domain={[1, 100]}
+                    label={{
+                      value: "Number of Queries",
+                      position: "bottom",
+                      offset: 20,
+                    }}
+                    ticks={[1, 2, 5, 10, 20, 50, 100]} // Nice log scale ticks
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    label={{
+                      value: "Time to Execute (ms)",
+                      angle: -90,
+                      position: "center",
+                      dx: -35,
+                    }}
+                  />
+
+                  {/* Tangent line */}
+                  <Line
+                    type="linear"
+                    data={getTangentLine(queryTimeData)}
+                    dataKey="time"
+                    stroke="#82ca9d"
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    dot={false}
+                  />
+                  <Line
+                    type="monotoneX"
+                    dataKey="time"
+                    stroke="#82ca9d"
+                    name="Query Time"
+                    strokeWidth={2}
+                    dot={(props) => {
+                      const { cx, cy, index, payload } = props;
+                      return (
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={draggedPointIndex === index ? 8 : 6}
+                          fill="#82ca9d"
+                          style={{
+                            cursor: payload.fixed ? 'not-allowed' : 'grab',
+                            userSelect: 'none',
+                            WebkitUserSelect: 'none'
+                          }}
+                          onMouseDown={(e) => !payload.fixed && handleDragStart(e, index)}
+                        />
+                      );
+                    }}
+                  />
+                </LineChart>
               </div>
             </div>
           </div>
