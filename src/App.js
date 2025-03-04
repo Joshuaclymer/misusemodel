@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   LineChart,
   Line,
@@ -12,29 +12,134 @@ import jStat from "jstat";
 import * as math from "mathjs";
 import "./App.css";
 
+const PlotParameters = ({ 
+  label,
+  parameters,
+  onParametersChange,
+  style,
+  anchorMonths
+}) => {
+  return (
+    <div style={style}>
+      <h4 style={{ marginBottom: '15px' }}>{label}</h4>
+      <div style={{ marginBottom: '20px' }}>
+        <h5>Effort Distribution Parameters</h5>
+        <div>
+          <label>Effort at {anchorMonths[0]} months (%):</label>
+          <input
+            type="number"
+            value={parameters.effortanch1}
+            onChange={(e) => onParametersChange({ ...parameters, effortanch1: parseFloat(e.target.value) })}
+            style={{ width: '80px', marginLeft: '10px' }}
+          />
+        </div>
+        <div>
+          <label>Effort at {anchorMonths[1]} months (%):</label>
+          <input
+            type="number"
+            value={parameters.effortanch2}
+            onChange={(e) => onParametersChange({ ...parameters, effortanch2: parseFloat(e.target.value) })}
+            style={{ width: '80px', marginLeft: '10px' }}
+          />
+        </div>
+        <div>
+          <label>Effort at {anchorMonths[2]} months (%):</label>
+          <input
+            type="number"
+            value={parameters.effortanch3}
+            onChange={(e) => onParametersChange({ ...parameters, effortanch3: parseFloat(e.target.value) })}
+            style={{ width: '80px', marginLeft: '10px' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '20px' }}>
+        <h5>Success Probability Parameters</h5>
+        <div>
+          <label>Success at {anchorMonths[0]} months (%):</label>
+          <input
+            type="number"
+            value={parameters.successanch1}
+            onChange={(e) => onParametersChange({ ...parameters, successanch1: parseFloat(e.target.value) })}
+            style={{ width: '80px', marginLeft: '10px' }}
+          />
+        </div>
+        <div>
+          <label>Success at {anchorMonths[1]} months (%):</label>
+          <input
+            type="number"
+            value={parameters.successanch2}
+            onChange={(e) => onParametersChange({ ...parameters, successanch2: parseFloat(e.target.value) })}
+            style={{ width: '80px', marginLeft: '10px' }}
+          />
+        </div>
+        <div>
+          <label>Success at {anchorMonths[2]} months (%):</label>
+          <input
+            type="number"
+            value={parameters.successanch3}
+            onChange={(e) => onParametersChange({ ...parameters, successanch3: parseFloat(e.target.value) })}
+            style={{ width: '80px', marginLeft: '10px' }}
+          />
+        </div>
+      </div>
+
+      <div style={{ marginBottom: '20px' }}>
+        <h5>Scale Parameters</h5>
+        <div>
+          <label>Annual Attempts:</label>
+          <input
+            type="number"
+            value={parameters.annualAttempts}
+            onChange={(e) => onParametersChange({ ...parameters, annualAttempts: parseFloat(e.target.value) })}
+            style={{ width: '80px', marginLeft: '10px' }}
+          />
+        </div>
+        <div>
+          <label>Expected Damage:</label>
+          <input
+            type="number"
+            value={parameters.expectedDamage}
+            onChange={(e) => onParametersChange({ ...parameters, expectedDamage: parseFloat(e.target.value) })}
+            style={{ width: '80px', marginLeft: '10px' }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const anchor_months = [3, 12, 36];
-  // Reference for the container width
   const containerRef = React.useRef(null);
-  const [effortanch1, setEffortanch1] = useState(90);
-  const [effortanch2, setEffortanch2] = useState(95);
-  const [effortanch3, setEffortanch3] = useState(98);
-  const [distributionData, setDistributionData] = useState([]);
   const [error, setError] = useState("");
-
-  // Success probability parameters
-  const [successanch1, setSuccessanch1] = useState(0.1);
-  const [successanch2, setSuccessanch2] = useState(3);
-  const [successanch3, setSuccessanch3] = useState(10);
-
-  // Scale parameters
-  const [annualAttempts, setAnnualAttempts] = useState(10);
-  const [expectedDamage, setExpectedDamage] = useState(1);
-
-  // Results
-  const [totalAnnualDamage, setTotalAnnualDamage] = useState(0);
-  const [damageDistribution, setDamageDistribution] = useState([]);
+  const [preDistributionData, setPreDistributionData] = useState([]);
+  const [postDistributionData, setPostDistributionData] = useState([]);
   const [containerWidth, setContainerWidth] = useState(0);
+
+  // Pre-mitigation parameters
+  const [preMitigationParams, setPreMitigationParams] = useState({
+    effortanch1: 90,
+    effortanch2: 95,
+    effortanch3: 98,
+    successanch1: 0.1,
+    successanch2: 3,
+    successanch3: 10,
+    annualAttempts: 10,
+    expectedDamage: 1
+  });
+
+  // Post-mitigation parameters
+  const [postMitigationParams, setPostMitigationParams] = useState({
+    effortanch1: 90,
+    effortanch2: 95,
+    effortanch3: 98,
+    successanch1: 0.1,
+    successanch2: 3,
+    successanch3: 10,
+    annualAttempts: 10,
+    expectedDamage: 1
+  });
 
   // Handle window resize
   useEffect(() => {
@@ -242,19 +347,19 @@ function App() {
     );
   };
 
-  const updateDistribution = () => {
+  const calculateDistribution = (params) => {
     const { fitEffortCDF } = estimateLogNormalParameters(
-      effortanch1 / 100,
-      effortanch2 / 100,
+      params.effortanch1 / 100,
+      params.effortanch2 / 100,
       1
     );
-    if (!fitEffortCDF) return;
+    if (!fitEffortCDF) return null;
 
     const points = [];
     const successPoints = {
-      yanch1: successanch1,
-      yanch2: successanch2,
-      yanch3: successanch3,
+      yanch1: params.successanch1,
+      yanch2: params.successanch2,
+      yanch3: params.successanch3,
     };
 
     // Calculate the time distribution and success probability points
@@ -277,41 +382,37 @@ function App() {
       });
     }
 
-    setDistributionData(points);
+    return points;
+  };
 
-    // Create points for the distribution by computing PDF from CDF
-    const damagePoints = [];
-    for (let i = 1; i < points.length; i++) {
-      // Compute PDF as derivative of CDF using finite differences
-      const fatalities =
-        points[i].successProbability * annualAttempts * expectedDamage * 1000000;
-
-      const probability = points[i].cumulativeProbability - points[i - 1].cumulativeProbability;
-
-      damagePoints.push({
-        damage: fatalities,
-        probability: probability,
-      });
-    }
-
-    // Sort by damage for proper display
-    damagePoints.sort((a, b) => a.damage - b.damage);
-
-    // calculate mean via pdf
-    let expectation1 = 0;
-    for (let i = 1; i < damagePoints.length; i++) {
-      expectation1 += damagePoints[i].probability  * damagePoints[i].damage;
-    }
-    console.log(expectation1)
-
-    // Calculate mean annual fatalities directly from the original points
+  const calculateExpectedFatalities = (points, params) => {
+    if (!points || points.length < 2) return 0;
+    
     let expectation = 0;
     for (let i = 1; i < points.length; i++) {
-      expectation += (points[i].cumulativeProbability - points[i - 1].cumulativeProbability) * points[i].successProbability * annualAttempts * expectedDamage * 1000000;
+      expectation +=
+        (points[i].cumulativeProbability - points[i - 1].cumulativeProbability) *
+        points[i].successProbability *
+        params.annualAttempts *
+        params.expectedDamage *
+        1000000;
     }
-    setTotalAnnualDamage(expectation);
+    return expectation;
+  };
 
-    setDamageDistribution(damagePoints);
+  const updateDistribution = () => {
+    try {
+      const prePoints = calculateDistribution(preMitigationParams);
+      const postPoints = calculateDistribution(postMitigationParams);
+      
+      if (!prePoints || !postPoints) return;
+
+      setPreDistributionData(prePoints);
+      setPostDistributionData(postPoints);
+      setError("");
+    } catch (e) {
+      setError(e.message);
+    }
   };
 
   return (
@@ -324,408 +425,234 @@ function App() {
             updateDistribution();
           }}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+            if (e.key === "Enter" && e.target.tagName === "INPUT") {
               e.preventDefault();
               updateDistribution();
             }
           }}
         >
           <div
-            style={{
-              marginBottom: "20px",
-              display: "flex",
-              gap: "40px",
-              justifyContent: "center",
-            }}
-          >
-            {/* Attempt Effort Distribution */}
-            <div>
-              <h3>Distribution of Attempt Effort</h3>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  marginTop: "10px",
-                }}
-              >
-                <label>
-                  Percentage of attempts taking less than {anchor_months[0]}{" "}
-                  months:
-                  <input
+            ref={containerRef}
+            style={{ display: "flex", flexDirection: "column", maxWidth: "1400px", margin: "0 auto", gap: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "center", gap: "40px" }}>
+              <h2 style={{ flex: 1, textAlign: "center", margin: 0, maxWidth: "500px" }}>Baseline</h2>
+              <h2 style={{ flex: 1, textAlign: "center", margin: 0, maxWidth: "500px" }}>Pre-Mitigation Deployment</h2>
+            </div>
+            
+            <div style={{ display: "flex", gap: "40px" }}>
+              {/* Left Column */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "30px" }}>
+              <PlotParameters
+                label="Baseline Parameters"
+                parameters={preMitigationParams}
+                onParametersChange={setPreMitigationParams}
+                style={{ width: "100%", maxWidth: "500px" }}
+                anchorMonths={anchor_months}
+              />
+
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
+                  Distribution
+                </h3>
+                <LineChart
+                  width={Math.min(800, (containerWidth - 80) / 2)}
+                  height={350}
+                  margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
+                  data={preDistributionData}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="months"
+                    scale="log"
+                    domain={["auto", "auto"]}
                     type="number"
-                    value={effortanch1}
-                    onChange={(e) =>
-                      setEffortanch1(
-                        e.target.value === "" ? "" : parseFloat(e.target.value)
-                      )
-                    }
-                    style={{ marginLeft: "10px" }}
-                    min="0"
-                    max="100"
+                    label={{
+                      value: "Months (log scale)",
+                      position: "bottom",
+                      offset: 20,
+                    }}
+                    tickFormatter={(value) => value.toFixed(1)}
                   />
-                  <span style={{ marginLeft: "5px" }}>%</span>
-                </label>
-                <label>
-                  Percentage of attempts taking less than {anchor_months[1]}{" "}
-                  months:
-                  <input
-                    type="number"
-                    value={effortanch2}
-                    onChange={(e) =>
-                      setEffortanch2(
-                        e.target.value === "" ? "" : parseFloat(e.target.value)
-                      )
-                    }
-                    style={{ marginLeft: "10px" }}
-                    min="0"
-                    max="100"
+                  <YAxis
+                    yAxisId="left"
+                    label={{
+                      value: "Cumulative Probability",
+                      angle: -90,
+                      position: "center",
+                      dx: -35,
+                    }}
                   />
-                  <span style={{ marginLeft: "5px" }}>%</span>
-                </label>
-                <label>
-                  Percentage of attempts taking less than {anchor_months[2]}{" "}
-                  months:
-                  <input
-                    type="number"
-                    value={effortanch3}
-                    onChange={(e) =>
-                      setEffortanch3(
-                        e.target.value === "" ? "" : parseFloat(e.target.value)
-                      )
+                  <Tooltip
+                    formatter={(value, name) => [value.toFixed(4), name]}
+                    labelFormatter={(value) =>
+                      `${value.toFixed(1)} months of effort`
                     }
-                    style={{ marginLeft: "10px" }}
-                    min="0"
-                    max="100"
                   />
-                  <span style={{ marginLeft: "5px" }}>%</span>
-                </label>
+                  <Legend
+                    layout="horizontal"
+                    align="center"
+                    verticalAlign="bottom"
+                    wrapperStyle={{
+                      paddingTop: "10px",
+                      bottom: -10,
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulativeProbability"
+                    stroke="#8884d8"
+                    name="CDF(Effort of attempt)"
+                    dot={false}
+                    yAxisId="left"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="successProbability"
+                    stroke="#2e8b57"
+                    name="Success probability conditional on effort"
+                    dot={false}
+                    yAxisId="right"
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    domain={[0, 1]}
+                    label={{
+                      value: "Success Probability",
+                      angle: 90,
+                      position: "center",
+                      dx: 30,
+                    }}
+                  />
+                </LineChart>
+              </div>
+
+              <div style={{ textAlign: "center", width: "100%" }}>
+                <h3 style={{ margin: "0 0 10px 0" }}>Expected Annual Fatalities</h3>
+                <div style={{ fontSize: "24px", fontWeight: "bold" }}>
+                  {calculateExpectedFatalities(preDistributionData, preMitigationParams).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
               </div>
             </div>
 
-            {/* Success Probability Distribution */}
-            <div>
-              <h3>Success Probability Given Effort</h3>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  marginTop: "10px",
-                }}
-              >
-                <label>
-                  Success probability given {anchor_months[0]} months of effort:
-                  <input
-                    type="number"
-                    value={successanch1}
-                    onChange={(e) =>
-                      setSuccessanch1(
-                        e.target.value === "" ? "" : parseFloat(e.target.value)
-                      )
-                    }
-                    style={{ marginLeft: "10px" }}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                  />
-                  <span style={{ marginLeft: "5px" }}>%</span>
-                </label>
-                <label>
-                  Success probability given {anchor_months[1]} months of effort:
-                  <input
-                    type="number"
-                    value={successanch2}
-                    onChange={(e) =>
-                      setSuccessanch2(
-                        e.target.value === "" ? "" : parseFloat(e.target.value)
-                      )
-                    }
-                    style={{ marginLeft: "10px" }}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                  />
-                  <span style={{ marginLeft: "5px" }}>%</span>
-                </label>
-                <label>
-                  Success probability given {anchor_months[2]} months of effort:
-                  <input
-                    type="number"
-                    value={successanch3}
-                    onChange={(e) =>
-                      setSuccessanch3(
-                        e.target.value === "" ? "" : parseFloat(e.target.value)
-                      )
-                    }
-                    style={{ marginLeft: "10px" }}
-                    min="0"
-                    max="100"
-                    step="0.1"
-                  />
-                  <span style={{ marginLeft: "5px" }}>%</span>
-                </label>
-              </div>
-            </div>
+            {/* Right Column */}
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "30px" }}>
+              <PlotParameters
+                label="Pre-Mitigation Deployment Parameters"
+                parameters={postMitigationParams}
+                onParametersChange={setPostMitigationParams}
+                style={{ width: "100%", maxWidth: "500px" }}
+                anchorMonths={anchor_months}
+              />
 
-            {/* Expected Annual Values */}
-            <div>
-              <h3>
-                Number of attempts and annual fatalities per successful attempt
-              </h3>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                  marginTop: "10px",
-                }}
-              >
-                <label>
-                  Expected number of attempts annually:
-                  <input
+              <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
+                  Distribution
+                </h3>
+                <LineChart
+                  width={Math.min(800, (containerWidth - 80) / 2)}
+                  height={350}
+                  margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
+                  data={postDistributionData}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="months"
+                    scale="log"
+                    domain={["auto", "auto"]}
                     type="number"
-                    value={annualAttempts}
-                    onChange={(e) =>
-                      setAnnualAttempts(
-                        e.target.value === ""
-                          ? ""
-                          : Math.max(0, parseInt(e.target.value))
-                      )
-                    }
-                    style={{ marginLeft: "10px" }}
+                    label={{
+                      value: "Months (log scale)",
+                      position: "bottom",
+                      offset: 20,
+                    }}
+                    tickFormatter={(value) => value.toFixed(1)}
                   />
-                </label>
-                <label>
-                  Expected fatalities per success (millions):
-                  <input
-                    type="number"
-                    value={expectedDamage}
-                    onChange={(e) =>
-                      setExpectedDamage(
-                        e.target.value === ""
-                          ? ""
-                          : Math.max(0, parseFloat(e.target.value))
-                      )
-                    }
-                    style={{ marginLeft: "10px" }}
-                    step="0.1"
+                  <YAxis
+                    yAxisId="left"
+                    label={{
+                      value: "Cumulative Probability",
+                      angle: -90,
+                      position: "center",
+                      dx: -35,
+                    }}
                   />
-                </label>
+                  <Tooltip
+                    formatter={(value, name) => [value.toFixed(4), name]}
+                    labelFormatter={(value) =>
+                      `${value.toFixed(1)} months of effort`
+                    }
+                  />
+                  <Legend
+                    layout="horizontal"
+                    align="center"
+                    verticalAlign="bottom"
+                    wrapperStyle={{
+                      paddingTop: "10px",
+                      bottom: -10,
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cumulativeProbability"
+                    stroke="#8884d8"
+                    name="CDF(Effort of attempt)"
+                    dot={false}
+                    yAxisId="left"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="successProbability"
+                    stroke="#2e8b57"
+                    name="Success probability conditional on effort"
+                    dot={false}
+                    yAxisId="right"
+                  />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    domain={[0, 1]}
+                    label={{
+                      value: "Success Probability",
+                      angle: 90,
+                      position: "center",
+                      dx: 30,
+                    }}
+                  />
+                </LineChart>
+              </div>
+
+              <div style={{ textAlign: "center", width: "100%" }}>
+                <h3 style={{ margin: "0 0 10px 0" }}>Expected Annual Fatalities</h3>
+                <div style={{ fontSize: "24px", fontWeight: "bold" }}>
+                  {calculateExpectedFatalities(postDistributionData, postMitigationParams).toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                </div>
               </div>
             </div>
           </div>
 
           {error && (
-            <div style={{ color: "red", marginTop: "10px" }}>{error}</div>
+            <div style={{ color: "red", textAlign: "center", marginTop: "20px" }}>{error}</div>
           )}
 
-          <div
-            ref={containerRef}
-            style={{
-              display: "flex",
-              flexDirection: "row",
-              gap: "40px",
-              marginTop: "20px",
-              justifyContent: "center",
-              maxWidth: "1400px",
-              margin: "20px auto",
-            }}
-          >
-            <div
+          <div style={{ display: "flex", justifyContent: "center", marginTop: "40px", marginBottom: "20px" }}>
+            <button
+              onClick={() => updateDistribution()}
+              type="button"
               style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
+                padding: "12px 24px",
+                backgroundColor: "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: "pointer",
+                width: "200px",
+                fontSize: "16px"
               }}
             >
-              <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-                Effort Distribution and Conditional Success Probability
-              </h3>
-              <LineChart
-                width={Math.min(800, (containerWidth - 80) / 2)}
-                height={350}
-                margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
-                data={distributionData}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="months"
-                  scale="log"
-                  domain={["auto", "auto"]}
-                  type="number"
-                  label={{
-                    value: "Months (log scale)",
-                    position: "bottom",
-                    offset: 20,
-                  }}
-                  tickFormatter={(value) => value.toFixed(1)}
-                />
-                <YAxis
-                  yAxisId="left"
-                  label={{
-                    value: "Cumulative Probability",
-                    angle: -90,
-                    position: "center",
-                    dx: -35,
-                  }}
-                />
-                <Tooltip
-                  formatter={(value, name) => [value.toFixed(4), name]}
-                  labelFormatter={(value) =>
-                    `${value.toFixed(1)} months of effort`
-                  }
-                />
-                <Legend
-                  layout="horizontal"
-                  align="center"
-                  verticalAlign="bottom"
-                  wrapperStyle={{
-                    paddingTop: "10px",
-                    bottom: -10,
-                  }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="cumulativeProbability"
-                  stroke="#8884d8"
-                  name="CDF(Effort of attempt)"
-                  dot={false}
-                  yAxisId="left"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="successProbability"
-                  stroke="#2e8b57"
-                  name="Success probability conditional on effort"
-                  dot={false}
-                  yAxisId="right"
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  domain={[0, 1]}
-                  label={{
-                    value: "Success Probability",
-                    angle: 90,
-                    position: "center",
-                    dx: 30,
-                  }}
-                />
-              </LineChart>
-            </div>
-
-            <div
-              style={{
-                flex: 1,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-              }}
-            >
-              <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-                Annual Fatalities
-              </h3>
-              <LineChart
-                width={Math.min(800, (containerWidth - 80) / 2)}
-                height={350}
-                margin={{ top: 5, right: 30, left: 50, bottom: 45 }}
-                data={damageDistribution}
-              >
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis
-                  dataKey="damage"
-                  type="number"
-                  scale="log"
-                  domain={["auto", "auto"]}
-                  label={{
-                    value: "Annual Fatalities (log scale)",
-                    position: "bottom",
-                    offset: 10,
-                  }}
-                  tickFormatter={(value) => value.toExponential(1)}
-                />
-                <YAxis
-                  label={{
-                    value: "Probability Density",
-                    angle: -90,
-                    position: "center",
-                    offset: -40,
-                    dx: -50,
-                  }}
-                  tickFormatter={(value) => value.toExponential(1)}
-                />
-                <Tooltip
-                  formatter={(value, name) => {
-                    // Round to 2 significant figures
-                    const sigFigs = Number(value).toPrecision(2);
-                    return [sigFigs, name];
-                  }}
-                  labelFormatter={(value) =>
-                    // Round to 2 significant figures for the label too
-                    `${Number(value).toPrecision(2)} Annual Fatalities`
-                  }
-                />
-                {/* <Legend
-                  layout="horizontal"
-                  align="center"
-                  verticalAlign="bottom"
-                  wrapperStyle={{
-                    paddingTop: "10px",
-                    bottom: -10,
-                  }}
-                /> */}
-                <Line
-                  type="monotone"
-                  dataKey="probability"
-                  stroke="#ff7300"
-                  name="Probability Density"
-                  dot={false}
-                />
-              </LineChart>
-            </div>
+              Refresh
+            </button>
           </div>
-
-          <div
-            style={{
-              marginTop: "40px",
-              padding: "15px",
-              backgroundColor: "#f0f8ff",
-              borderRadius: "0px",
-              // border: "1px solid #ff7300",
-            }}
-          >
-            <h3 style={{ margin: "0" }}>Expected Annual Fatalities:</h3>
-            <div
-              style={{
-                fontSize: "24px",
-                fontWeight: "bold",
-                color: "#ff7300",
-                marginBottom: "15px",
-              }}
-            >
-              {totalAnnualDamage.toLocaleString(undefined, {
-                maximumFractionDigits: 0,
-              })}
-            </div>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <button
-                onClick={() => updateDistribution()}
-                type="button"
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#ff7300",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  width: "200px",
-                }}
-              >
-                Refresh
-              </button>
-            </div>
           </div>
         </form>
       </div>
