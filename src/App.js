@@ -279,56 +279,37 @@ function App() {
 
     setDistributionData(points);
 
-    for (let i = 0; i < points.length; i++) {
-      points[i].cumulative_success =
-        points[i].cumulativeProbability * points[i].successProbability;
-      points[i].cumulative_fatalities =
-        points[i].cumulative_success *
-        annualAttempts *
-        expectedDamage *
-        1000000;
-    }
-
-    // For a range of success probabilities
-    const maxSuccessProb = Math.max(...points.map((p) => p.successProbability));
-
     // Create points for the distribution by computing PDF from CDF
     const damagePoints = [];
     for (let i = 1; i < points.length; i++) {
       // Compute PDF as derivative of CDF using finite differences
-      const deltaFatalities =
-        points[i].cumulative_fatalities - points[i - 1].cumulative_fatalities;
-      const deltaCDF =
-        points[i].cumulativeProbability - points[i - 1].cumulativeProbability;
-
-      // PDF = dCDF/dx
-      const pdf = deltaCDF / deltaFatalities;
-
-      // Use midpoint for the fatality value
       const fatalities =
-        (points[i].cumulative_fatalities +
-          points[i - 1].cumulative_fatalities) /
-        2;
+        points[i].successProbability * annualAttempts * expectedDamage * 1000000;
+
+      const probability = points[i].cumulativeProbability - points[i - 1].cumulativeProbability;
 
       damagePoints.push({
         damage: fatalities,
-        probability: pdf,
+        probability: probability,
       });
     }
 
     // Sort by damage for proper display
     damagePoints.sort((a, b) => a.damage - b.damage);
 
+    // calculate mean via pdf
+    let expectation1 = 0;
+    for (let i = 1; i < damagePoints.length; i++) {
+      expectation1 += damagePoints[i].probability  * damagePoints[i].damage;
+    }
+    console.log(expectation1)
+
     // Calculate mean annual fatalities directly from the original points
-    const totalMean = points.reduce((sum, point, i) => {
-      if (i === 0) return sum;
-      // Get the probability mass between this point and the previous point
-      const deltaCDF = point.cumulativeProbability - points[i-1].cumulativeProbability;
-      // Use the midpoint of fatalities for this segment
-      const midpointFatalities = (point.cumulative_fatalities + points[i-1].cumulative_fatalities) / 2;
-      return sum + deltaCDF * midpointFatalities;
-    }, 0);
-    setTotalAnnualDamage(totalMean);
+    let expectation = 0;
+    for (let i = 1; i < points.length; i++) {
+      expectation += (points[i].cumulativeProbability - points[i - 1].cumulativeProbability) * points[i].successProbability * annualAttempts * expectedDamage * 1000000;
+    }
+    setTotalAnnualDamage(expectation);
 
     setDamageDistribution(damagePoints);
   };
