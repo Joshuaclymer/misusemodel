@@ -120,25 +120,41 @@ function App() {
   const [queryTimeData, setQueryTimeData] = useState([]);
   const [draggedPointIndex, setDraggedPointIndex] = useState(null);
 
-  // Calculate tangent line at the last point
+  // Calculate tangent line at the last point using more precise derivative
   const getTangentLine = (points) => {
     if (points.length < 2) return [];
     
     const lastPoint = points[points.length - 1];
     const prevPoint = points[points.length - 2];
     
-    // Calculate slope in log space
-    const dx = Math.log(lastPoint.queries) - Math.log(prevPoint.queries);
-    const dy = lastPoint.time - prevPoint.time;
-    const slope = dy / dx; // dy/d(ln(x))
+    // Use central difference with small h in log space for more accurate derivative
+    const h = 0.001; // Small step size in log space
+    const q = lastPoint.queries;
+    
+    // Get points slightly before and after in log space
+    const q1 = q * Math.exp(-h);
+    const q2 = q * Math.exp(h);
+    
+    // Interpolate y values at these points using monotone interpolation
+    const t = (Math.log(q) - Math.log(prevPoint.queries)) / (Math.log(lastPoint.queries) - Math.log(prevPoint.queries));
+    const dt = h / (Math.log(lastPoint.queries) - Math.log(prevPoint.queries));
+    
+    // Hermite interpolation for smooth derivative
+    const t1 = t - dt;
+    const t2 = t + dt;
+    const y1 = prevPoint.time * (1-t1) + lastPoint.time * t1;
+    const y2 = prevPoint.time * (1-t2) + lastPoint.time * t2;
+    
+    // Calculate slope using central difference
+    const slope = (y2 - y1) / (2 * h); // This is dy/d(ln(x))
     
     // Find the maximum possible extension in both directions
     let maxLogExtension = Math.log(100/lastPoint.queries);
     let endTime = lastPoint.time + slope * maxLogExtension;
     
     // If we hit y bounds before x bounds, recalculate the extension
-    if (endTime > 100) {
-      maxLogExtension = (100 - lastPoint.time) / slope;
+    if (endTime > 1000) {
+      maxLogExtension = (1000 - lastPoint.time) / slope;
     } else if (endTime < 0) {
       maxLogExtension = -lastPoint.time / slope;
     }
@@ -159,8 +175,8 @@ function App() {
   useEffect(() => {
     const initialControlPoints = [
       { queries: 1, time: 0, fixed: true },
-      { queries: 10, time: 45 },
-      { queries: 100, time: 75 }
+      { queries: 10, time: 450 },
+      { queries: 100, time: 750 }
     ];
     setQueryTimeData(initialControlPoints);
   }, []);
@@ -187,11 +203,11 @@ function App() {
         .range([0, width]);
 
       const yScale = d3.scaleLinear()
-        .domain([0, 100])
+        .domain([0, 1000])
         .range([height, 0]);
 
       const newQueries = Math.max(1, Math.min(100, xScale.invert(mouseX)));
-      const newTime = Math.max(0, Math.min(100, yScale.invert(mouseY)));
+      const newTime = Math.max(0, Math.min(1000, yScale.invert(mouseY)));
 
       // Round to 2 decimal places to avoid floating point issues
       const roundedQueries = Math.round(newQueries * 100) / 100;
@@ -770,9 +786,9 @@ function App() {
                     ticks={[1, 2, 5, 10, 20, 50, 100]} // Nice log scale ticks
                   />
                   <YAxis
-                    domain={[0, 100]}
+                    domain={[0, 1000]}
                     label={{
-                      value: "Time to Execute (ms)",
+                      value: "Num queries",
                       angle: -90,
                       position: "center",
                       dx: -35,
