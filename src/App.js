@@ -13,18 +13,19 @@ import * as math from "mathjs";
 import "./App.css";
 
 function App() {
+  const anchor_months = [3, 12, 36];
   // Reference for the container width
   const containerRef = React.useRef(null);
-  const [effort2m, setEffort2m] = useState(90); // 2 month percentile
-  const [effort6m, setEffort6m] = useState(95); // 6 month percentile
-  const [effort3y, setEffort3y] = useState(98); // 3 year percentile
+  const [effortanch1, setEffortanch1] = useState(90);
+  const [effortanch2, setEffortanch2] = useState(95);
+  const [effortanch3, setEffortanch3] = useState(98);
   const [distributionData, setDistributionData] = useState([]);
   const [error, setError] = useState("");
 
   // Success probability parameters
-  const [success2m, setSuccess2m] = useState(0.1);
-  const [success6m, setSuccess6m] = useState(3);
-  const [success3y, setSuccess3y] = useState(10);
+  const [successanch1, setSuccessanch1] = useState(0.1);
+  const [successanch2, setSuccessanch2] = useState(3);
+  const [successanch3, setSuccessanch3] = useState(10);
 
   // Scale parameters
   const [annualAttempts, setAnnualAttempts] = useState(10);
@@ -68,14 +69,14 @@ function App() {
   };
 
   // Function to estimate log-normal parameters from three percentile points
-  const estimateLogNormalParameters = (p2m, p6m, p3y) => {
+  const estimateLogNormalParameters = (panch1, panch2, panch3) => {
     if (
-      p2m >= p6m ||
-      p6m >= p3y ||
-      p2m < 0 ||
-      p6m < 0 ||
-      p3y < 0 ||
-      p3y > 100
+      panch1 >= panch2 ||
+      panch2 >= panch3 ||
+      panch1 < 0 ||
+      panch2 < 0 ||
+      panch3 < 0 ||
+      panch3 > 100
     ) {
       setError("Percentiles must be in increasing order and between 0 and 100");
       return null;
@@ -85,59 +86,71 @@ function App() {
     // Fit monotonic cubic Hermite spline for CDF
     const fitEffortCDF = (x) => {
       const logX = Math.log(x);
-      const xs = [Math.log(0.1), Math.log(2), Math.log(6), Math.log(36)];  // x coordinates in log space
-      const ys = [0, p2m, p6m, 1];  // y coordinates, start at 0 and end at 1
-      
+      const xs = [
+        Math.log(0.1),
+        Math.log(anchor_months[0]),
+        Math.log(anchor_months[1]),
+        Math.log(anchor_months[2]),
+      ]; // x coordinates in log space
+      const ys = [0, panch1, panch2, 1]; // y coordinates, start at 0 and end at 1
+
       // Compute slopes between points
       const slopes = [];
       for (let i = 0; i < xs.length - 1; i++) {
-        slopes.push((ys[i+1] - ys[i]) / (xs[i+1] - xs[i]));
+        slopes.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
       }
-      
+
       // Compute tangents using Fritsch-Carlson method
       const tangents = new Array(xs.length);
-      tangents[0] = slopes[0] * 1.5;  // Moderate increase in initial slope for concavity while maintaining monotonicity
-      tangents[xs.length-1] = 0;  // Force horizontal at end
-      
+      tangents[0] = slopes[0] * 1.5; // Moderate increase in initial slope for concavity while maintaining monotonicity
+      tangents[xs.length - 1] = 0; // Force horizontal at end
+
       // For middle points, use harmonic mean if slopes have same sign
       for (let i = 1; i < xs.length - 1; i++) {
-        if (slopes[i-1] * slopes[i] > 0) {
-          const w1 = 2 * slopes[i] + slopes[i-1];
-          const w2 = slopes[i] + 2 * slopes[i-1];
-          tangents[i] = (w1 + w2) / (3 * (w1 / slopes[i-1] + w2 / slopes[i]));
+        if (slopes[i - 1] * slopes[i] > 0) {
+          const w1 = 2 * slopes[i] + slopes[i - 1];
+          const w2 = slopes[i] + 2 * slopes[i - 1];
+          tangents[i] = (w1 + w2) / (3 * (w1 / slopes[i - 1] + w2 / slopes[i]));
         } else {
-          tangents[i] = Math.min(slopes[i-1], slopes[i]);  // Take smaller slope for smoothness
+          tangents[i] = Math.min(slopes[i - 1], slopes[i]); // Take smaller slope for smoothness
         }
       }
-      
+
       // Smooth extrapolation for points outside the range
       if (logX <= xs[0]) {
-        return 0;  // Start at exactly 0
+        return 0; // Start at exactly 0
       }
       if (logX >= xs[3]) {
-        return 1;  // End at exactly 1
+        return 1; // End at exactly 1
       }
-      
+
       // Find the appropriate segment
       let i = 0;
-      while (i < xs.length - 1 && logX > xs[i+1]) i++;
-      
+      while (i < xs.length - 1 && logX > xs[i + 1]) i++;
+
       // Compute the interpolation
-      const h = xs[i+1] - xs[i];
+      const h = xs[i + 1] - xs[i];
       const t = (logX - xs[i]) / h;
-      
+
       // Hermite basis functions
-      const h00 = 2*t*t*t - 3*t*t + 1;
-      const h10 = t*t*t - 2*t*t + t;
-      const h01 = -2*t*t*t + 3*t*t;
-      const h11 = t*t*t - t*t;
-      
+      const h00 = 2 * t * t * t - 3 * t * t + 1;
+      const h10 = t * t * t - 2 * t * t + t;
+      const h01 = -2 * t * t * t + 3 * t * t;
+      const h11 = t * t * t - t * t;
+
       // Interpolate and clamp to [0,1]
-      return Math.min(1, Math.max(0, 
-        h00*ys[i] + h10*h*tangents[i] + h01*ys[i+1] + h11*h*tangents[i+1]
-      ));
+      return Math.min(
+        1,
+        Math.max(
+          0,
+          h00 * ys[i] +
+            h10 * h * tangents[i] +
+            h01 * ys[i + 1] +
+            h11 * h * tangents[i + 1]
+        )
+      );
     };
-    
+
     return { fitEffortCDF };
   };
 
@@ -145,83 +158,103 @@ function App() {
   const fitLogisticCurve = (x, points) => {
     // Convert to log scale for interpolation
     const logX = Math.log(x);
-    const xs = [Math.log(2), Math.log(6), Math.log(36)];  // x coordinates in log space
-    const ys = [points.y2m / 100, points.y6m / 100, points.y3y / 100];  // y coordinates
-    
+    const xs = [
+      Math.log(0.1),
+      Math.log(anchor_months[0]),
+      Math.log(anchor_months[1]),
+      Math.log(anchor_months[2]),
+    ]; // x coordinates in log space
+    const ys = [
+      0,
+      points.yanch1 / 100,
+      points.yanch2 / 100,
+      points.yanch3 / 100,
+    ]; // y coordinates starting at 0
+
     // Compute slopes between points
     const slopes = [];
     for (let i = 0; i < xs.length - 1; i++) {
-      slopes.push((ys[i+1] - ys[i]) / (xs[i+1] - xs[i]));
+      slopes.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
     }
-    
-    // Initialize tangents using Fritsch-Carlson method to ensure monotonicity
+
+    // Compute tangents using Fritsch-Carlson method to ensure monotonicity
     const tangents = new Array(xs.length);
-    
-    // Set initial values based on slopes
-    tangents[0] = slopes[0];
-    tangents[xs.length-1] = slopes[slopes.length-1];
-    
-    // For the middle point, use harmonic mean if slopes have same sign
-    if (slopes[0] * slopes[1] > 0) {
-      const w1 = 2 * slopes[1] + slopes[0];
-      const w2 = slopes[1] + 2 * slopes[0];
-      tangents[1] = (w1 + w2) / (3 * (w1 / slopes[0] + w2 / slopes[1]));
-    } else {
-      tangents[1] = 0;
-    }
-    
-    // Adjust tangents to ensure monotonicity (Fritsch-Carlson conditions)
-    for (let i = 0; i < xs.length; i++) {
-      if (i > 0 && slopes[i-1] === 0) tangents[i] = 0;
-      if (i < slopes.length && slopes[i] === 0) tangents[i] = 0;
-      
-      if (i > 0 && i < slopes.length) {
-        const alpha = tangents[i] / slopes[i-1];
-        const beta = tangents[i] / slopes[i];
-        if (alpha * alpha + beta * beta > 9) {
-          const tau = 3 / Math.sqrt(alpha * alpha + beta * beta);
-          tangents[i] *= tau;
-        }
+    tangents[0] = slopes[0] * 1.5; // Moderate increase in initial slope
+    tangents[xs.length - 1] = slopes[slopes.length - 1] * 0.5; // Gentler slope at end
+
+    // For middle points, use harmonic mean if slopes have same sign
+    for (let i = 1; i < xs.length - 1; i++) {
+      if (slopes[i - 1] * slopes[i] > 0) {
+        const w1 = 2 * slopes[i] + slopes[i - 1];
+        const w2 = slopes[i] + 2 * slopes[i - 1];
+        tangents[i] = (w1 + w2) / (3 * (w1 / slopes[i - 1] + w2 / slopes[i]));
+      } else {
+        tangents[i] = 0; // Ensure smoothness at inflection points
       }
     }
-    
-    // Smooth extrapolation for points outside the range
+
+    // Ensure monotonicity by adjusting tangents
+    for (let i = 0; i < xs.length; i++) {
+      if (i > 0) {
+        const alpha = tangents[i] / slopes[i - 1];
+        if (alpha < 0) tangents[i] = 0;
+        else if (alpha > 3) tangents[i] = 3 * slopes[i - 1];
+      }
+      if (i < slopes.length) {
+        const beta = tangents[i] / slopes[i];
+        if (beta < 0) tangents[i] = 0;
+        else if (beta > 3) tangents[i] = 3 * slopes[i];
+      }
+    }
+
+    // Handle points outside the range
     if (logX <= xs[0]) {
-      return Math.max(0, Math.min(1, ys[0]));
+      return 0; // Start at exactly 0
     }
-    if (logX >= xs[2]) {
-      return Math.max(0, Math.min(1, ys[2]));
+    if (logX >= xs[3]) {
+      return Math.min(1, ys[3] + tangents[3] * (logX - xs[3]) * 0.1); // Gentle extrapolation
     }
-    
+
     // Find the appropriate segment
     let i = 0;
-    while (i < xs.length - 1 && logX > xs[i+1]) i++;
-    
+    while (i < xs.length - 1 && logX > xs[i + 1]) i++;
+
     // Compute the interpolation
-    const h = xs[i+1] - xs[i];
+    const h = xs[i + 1] - xs[i];
     const t = (logX - xs[i]) / h;
-    
+
     // Hermite basis functions
-    const h00 = 2*t*t*t - 3*t*t + 1;
-    const h10 = t*t*t - 2*t*t + t;
-    const h01 = -2*t*t*t + 3*t*t;
-    const h11 = t*t*t - t*t;
-    
-    // Interpolate and ensure output is between 0 and 1
-    return Math.max(0, Math.min(1,
-      h00*ys[i] + h10*h*tangents[i] + h01*ys[i+1] + h11*h*tangents[i+1]
-    ));
+    const h00 = 2 * t * t * t - 3 * t * t + 1;
+    const h10 = t * t * t - 2 * t * t + t;
+    const h01 = -2 * t * t * t + 3 * t * t;
+    const h11 = t * t * t - t * t;
+
+    // Interpolate and ensure bounds
+    return Math.min(
+      1,
+      Math.max(
+        0,
+        h00 * ys[i] +
+          h10 * h * tangents[i] +
+          h01 * ys[i + 1] +
+          h11 * h * tangents[i + 1]
+      )
+    );
   };
 
   const updateDistribution = () => {
-    const { fitEffortCDF } = estimateLogNormalParameters(effort2m / 100, effort6m / 100, 1);
+    const { fitEffortCDF } = estimateLogNormalParameters(
+      effortanch1 / 100,
+      effortanch2 / 100,
+      1
+    );
     if (!fitEffortCDF) return;
 
     const points = [];
     const successPoints = {
-      y2m: success2m,
-      y6m: success6m,
-      y3y: success3y,
+      yanch1: successanch1,
+      yanch2: successanch2,
+      yanch3: successanch3,
     };
 
     // Calculate the time distribution and success probability points
@@ -246,79 +279,58 @@ function App() {
 
     setDistributionData(points);
 
-    // Calculate annual fatalities distribution
-    const numPoints = 200;
-    const damageValue = expectedDamage * 1000000; // Convert from millions to absolute
+    for (let i = 0; i < points.length; i++) {
+      points[i].cumulative_success =
+        points[i].cumulativeProbability * points[i].successProbability;
+      points[i].cumulative_fatalities =
+        points[i].cumulative_success *
+        annualAttempts *
+        expectedDamage *
+        1000000;
+    }
+
+    // For a range of success probabilities
+    const maxSuccessProb = Math.max(...points.map((p) => p.successProbability));
+
+    // Create points for the distribution by computing PDF from CDF
     const damagePoints = [];
+    for (let i = 1; i < points.length; i++) {
+      // Compute PDF as derivative of CDF using finite differences
+      const deltaFatalities =
+        points[i].cumulative_fatalities - points[i - 1].cumulative_fatalities;
+      const deltaCDF =
+        points[i].cumulativeProbability - points[i - 1].cumulativeProbability;
 
-    // Helper function to find effort required for a given success probability
-    // Uses binary search since success probability is monotonic in effort
-    const findEffortForSuccessProb = (targetProb) => {
-      if (targetProb <= 0) return points[0].months;
-      if (targetProb >= 1) return points[points.length - 1].months;
+      // PDF = dCDF/dx
+      const pdf = deltaCDF / deltaFatalities;
 
-      let prob = 0;
-      for (let i = 0; i < points.length; i++) {
-        prob = points[i].successProbability;
-        console.log(prob, targetProb);
-        if (prob > targetProb) return points[i].months;
-      }
-      console.log("Failed to find effort for success probability");
-    };
+      // Use midpoint for the fatality value
+      const fatalities =
+        (points[i].cumulative_fatalities +
+          points[i - 1].cumulative_fatalities) /
+        2;
 
-    console.log(findEffortForSuccessProb(0.03));
+      damagePoints.push({
+        damage: fatalities,
+        probability: pdf,
+      });
+    }
 
-    // this is under construction, don't worry about it
-    // // For a range of success probabilities
-    // const maxSuccessProb = Math.max(
-    //   ...points.map(p => fitLogisticCurve(p.months, successPoints))
-    // );
+    // Sort by damage for proper display
+    damagePoints.sort((a, b) => a.damage - b.damage);
 
-    // // Create points for the distribution
-    // for (let i = 0; i < numPoints; i++) {
-    //   // Sample success probabilities on a log scale to better capture rare events
-    //   const successProb = maxSuccessProb * Math.exp(Math.log(1e-6) * (1 - i / (numPoints - 1)));
+    // Calculate mean annual fatalities directly from the original points
+    const totalMean = points.reduce((sum, point, i) => {
+      if (i === 0) return sum;
+      // Get the probability mass between this point and the previous point
+      const deltaCDF = point.cumulativeProbability - points[i-1].cumulativeProbability;
+      // Use the midpoint of fatalities for this segment
+      const midpointFatalities = (point.cumulative_fatalities + points[i-1].cumulative_fatalities) / 2;
+      return sum + deltaCDF * midpointFatalities;
+    }, 0);
+    setTotalAnnualDamage(totalMean);
 
-    //   // Find required effort for this success probability
-    //   const requiredEffort = findEffortForSuccessProb(successProb);
-
-    //   // Find probability that effort is less than required effort (from CDF)
-    //   let effortProb = 0;
-    //   for (let j = 0; j < points.length; j++) {
-    //     if (points[j].months > requiredEffort) {
-    //       if (j === 0) {
-    //         effortProb = 0;
-    //       } else {
-    //         // Linear interpolation of CDF
-    //         const t = (requiredEffort - points[j-1].months) / (points[j].months - points[j-1].months);
-    //         effortProb = points[j-1].cumulativeProbability * (1 - t) + points[j].cumulativeProbability * t;
-    //       }
-    //       break;
-    //     }
-    //   }
-
-    // Calculate annual fatalities for this probability
-    //   const annualSuccessProb = successProb * annualAttempts; // Expected number of successes per year
-    //   const annualFatalities = annualSuccessProb * damageValue;
-
-    //   // Add point if probability is non-zero
-    //   if (effortProb > 0) {
-    //     damagePoints.push({
-    //       damage: annualFatalities,
-    //       probability: effortProb,
-    //     });
-    //   }
-    // }
-
-    // // Sort by damage for proper display
-    // damagePoints.sort((a, b) => a.damage - b.damage);
-
-    // // Calculate mean annual fatalities
-    // const totalMean = damagePoints.reduce((sum, point) =>
-    //   sum + point.damage * point.probability, 0);
-    // setTotalAnnualDamage(totalMean);
-
-    // setDamageDistribution(damagePoints);
+    setDamageDistribution(damagePoints);
   };
 
   return (
@@ -329,6 +341,12 @@ function App() {
           onSubmit={(e) => {
             e.preventDefault();
             updateDistribution();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+              e.preventDefault();
+              updateDistribution();
+            }
           }}
         >
           <div
@@ -351,12 +369,13 @@ function App() {
                 }}
               >
                 <label>
-                  Percentage of attempts taking less than 2 months:
+                  Percentage of attempts taking less than {anchor_months[0]}{" "}
+                  months:
                   <input
                     type="number"
-                    value={effort2m}
+                    value={effortanch1}
                     onChange={(e) =>
-                      setEffort2m(
+                      setEffortanch1(
                         e.target.value === "" ? "" : parseFloat(e.target.value)
                       )
                     }
@@ -367,12 +386,13 @@ function App() {
                   <span style={{ marginLeft: "5px" }}>%</span>
                 </label>
                 <label>
-                  Percentage of attempts taking less than 6 months:
+                  Percentage of attempts taking less than {anchor_months[1]}{" "}
+                  months:
                   <input
                     type="number"
-                    value={effort6m}
+                    value={effortanch2}
                     onChange={(e) =>
-                      setEffort6m(
+                      setEffortanch2(
                         e.target.value === "" ? "" : parseFloat(e.target.value)
                       )
                     }
@@ -383,12 +403,13 @@ function App() {
                   <span style={{ marginLeft: "5px" }}>%</span>
                 </label>
                 <label>
-                  Percentage of attempts taking less than 3 years:
+                  Percentage of attempts taking less than {anchor_months[2]}{" "}
+                  months:
                   <input
                     type="number"
-                    value={effort3y}
+                    value={effortanch3}
                     onChange={(e) =>
-                      setEffort3y(
+                      setEffortanch3(
                         e.target.value === "" ? "" : parseFloat(e.target.value)
                       )
                     }
@@ -413,12 +434,12 @@ function App() {
                 }}
               >
                 <label>
-                  Success probability given 2 months of effort:
+                  Success probability given {anchor_months[0]} months of effort:
                   <input
                     type="number"
-                    value={success2m}
+                    value={successanch1}
                     onChange={(e) =>
-                      setSuccess2m(
+                      setSuccessanch1(
                         e.target.value === "" ? "" : parseFloat(e.target.value)
                       )
                     }
@@ -430,12 +451,12 @@ function App() {
                   <span style={{ marginLeft: "5px" }}>%</span>
                 </label>
                 <label>
-                  Success probability given 6 months of effort:
+                  Success probability given {anchor_months[1]} months of effort:
                   <input
                     type="number"
-                    value={success6m}
+                    value={successanch2}
                     onChange={(e) =>
-                      setSuccess6m(
+                      setSuccessanch2(
                         e.target.value === "" ? "" : parseFloat(e.target.value)
                       )
                     }
@@ -447,12 +468,12 @@ function App() {
                   <span style={{ marginLeft: "5px" }}>%</span>
                 </label>
                 <label>
-                  Success probability given 3 years of effort:
+                  Success probability given {anchor_months[2]} months of effort:
                   <input
                     type="number"
-                    value={success3y}
+                    value={successanch3}
                     onChange={(e) =>
-                      setSuccess3y(
+                      setSuccessanch3(
                         e.target.value === "" ? "" : parseFloat(e.target.value)
                       )
                     }
@@ -628,15 +649,21 @@ function App() {
               <LineChart
                 width={Math.min(800, (containerWidth - 80) / 2)}
                 height={350}
-                margin={{ top: 5, right: 30, left: 50, bottom: 25 }}
+                margin={{ top: 5, right: 30, left: 50, bottom: 45 }}
                 data={damageDistribution}
               >
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis
                   dataKey="damage"
                   type="number"
-                  label={{ value: "Annual Fatalities", position: "bottom" }}
-                  tickFormatter={(value) => value.toLocaleString()}
+                  scale="log"
+                  domain={["auto", "auto"]}
+                  label={{
+                    value: "Annual Fatalities (log scale)",
+                    position: "bottom",
+                    offset: 10,
+                  }}
+                  tickFormatter={(value) => value.toExponential(1)}
                 />
                 <YAxis
                   label={{
@@ -703,7 +730,8 @@ function App() {
             </div>
             <div style={{ display: "flex", justifyContent: "center" }}>
               <button
-                type="submit"
+                onClick={() => updateDistribution()}
+                type="button"
                 style={{
                   padding: "8px 16px",
                   backgroundColor: "#ff7300",
