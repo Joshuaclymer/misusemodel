@@ -4,12 +4,19 @@ import EffortCDF from "./components/EffortCDF.jsx";
 import QueriesVsTime from "./components/QueriesVsTime.jsx";
 import { getTimeForQueries } from "./components/QueriesVsTime.jsx";
 import SuccessGivenEffort from "./components/SuccessGivenEffort.jsx";
+import ComparisonSuccessGivenEffort from "./components/ComparisonSuccessGivenEffort.jsx";
 import ExpectedAnnualFatalities from "./components/ExpectedAnnualFatalities.jsx";
+import BansVsQueries from "./components/BansVsQueries.jsx";
+import {getBansForQueries} from "./components/BansVsQueries.jsx";
+import TimeVsQueries2 from "./components/QueriesVsTime2.jsx";
 import { generateCurvePoints } from "./utils/curves.js";
 import {
   runModel,
   getPostMitigationSuccessProbabilityGivenEffort,
 } from "./utils/model.js";
+
+// Maximum time in months for pre-mitigation and baseline curves
+export const maxTimeMonths = 60; // 60 months
 
 function App() {
   const [error, setError] = useState("");
@@ -41,20 +48,45 @@ function App() {
 
   // Initialize data on mount
   useEffect(() => {
-    const defaultPoints = [
-      { time: 1, queries: 0 },
-      { time: 90, queries: 450 },
-      { time: 270, queries: 750 },
+    const initialTimeToExecuteQueries = [
+      { time: 0, queries: 0, fixed: true },
+      { time: 22.5, queries: 25 }, // Middle point slightly above the diagonal
+      { time: 45, queries: 45 }, // End at max x,y
     ];
 
-    setInputParams({
-      baselineSuccessProbabilityGivenEffort: generateCurvePoints(baselineTextFields),
-      preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(preMitigationTextFields),
-      timeToExecuteQueries: Array.from({ length: 1000 }, (_, i) => getTimeForQueries(i, defaultPoints)),
+    const initialBansVsQueries = [
+      { time: 0, queries: 0, fixed: true },
+      { time: 22.5, queries: 25 },
+      { time: 45, queries: 45 },
+    ];
+
+    // Calculate array size to reach maxTimeMonths
+    const arraySize = Math.ceil(maxTimeMonths * queriesPerMonth) + 1;
+
+    const initialParams = {
+      baselineSuccessProbabilityGivenEffort:
+        generateCurvePoints(baselineTextFields),
+      preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(
+        preMitigationTextFields
+      ),
+      timeToExecuteQueries: Array.from({ length: arraySize }, (_, i) =>
+        getTimeForQueries(i, initialTimeToExecuteQueries)
+      ),
+      bansVsQueries: Array.from({ length: arraySize }, (_, i) =>
+        getBansForQueries(i, initialBansVsQueries)
+      ),
       expectedFatalitiesPerSuccessfulAttempt: 1000000,
       expectedAnnualAttempts: 1000,
       queriesAttackerExecutesPerMonth: 30,
-    });
+    };
+
+    setInputParams(initialParams);
+
+    // Run model with initial data
+    const initialOutputParams = runModelWithErrorHandling(initialParams);
+    if (initialOutputParams) {
+      setOutputParams(initialOutputParams);
+    }
   }, []);
 
   // Output parameters
@@ -64,9 +96,6 @@ function App() {
     preMitigationExpectedAnnualFatalities: null,
     postMitigationExpectedAnnualFatalities: null,
   });
-
-
-
 
   // Initialize input parameters from text data
   const computeInputParamsFromTextFields = () => {
@@ -229,6 +258,7 @@ function App() {
                     }));
                     refreshPage();
                   }}
+                  data={inputParams.baselineSuccessProbabilityGivenEffort}
                 />
 
                 <ExpectedAnnualFatalities
@@ -270,6 +300,7 @@ function App() {
                     }));
                     refreshPage();
                   }}
+                  data={inputParams.preMitigationSuccessProbabilityGivenEffort}
                 />
 
                 <div style={{ textAlign: "center", width: "100%" }}>
@@ -310,36 +341,73 @@ function App() {
                 </h2>
 
                 <QueriesVsTime
+                  queriesPerMonth={inputParams.queriesAttackerExecutesPerMonth}
                   onMouseUp={(data) => {
                     const timeForQueries = Array.from(
                       { length: 1000 },
                       (_, i) => getTimeForQueries(i, data)
                     );
-                    const baselineCurve = generateCurvePoints(baselineTextFields);
-                    const preMitigationCurve = generateCurvePoints(preMitigationTextFields);
-                    
+                    const baselineCurve =
+                      generateCurvePoints(baselineTextFields);
+                    const preMitigationCurve = generateCurvePoints(
+                      preMitigationTextFields
+                    );
+
                     const updatedParams = {
                       ...inputParams,
                       timeToExecuteQueries: timeForQueries,
                       baselineSuccessProbabilityGivenEffort: baselineCurve,
-                      preMitigationSuccessProbabilityGivenEffort: preMitigationCurve
+                      preMitigationSuccessProbabilityGivenEffort:
+                        preMitigationCurve,
                     };
-                    
+
                     setInputParams(updatedParams);
-                    const newOutputParams = runModelWithErrorHandling(updatedParams);
+                    const newOutputParams =
+                      runModelWithErrorHandling(updatedParams);
                     if (newOutputParams) {
                       setOutputParams(newOutputParams);
                     }
                   }}
                 />
 
-                <SuccessGivenEffort
+                <ComparisonSuccessGivenEffort
                   data={
                     outputParams.postMitigationSuccessProbabilityGivenEffort
                   }
                   readOnly={true}
-                  title="Post-Mitigation Success Probability"
+                  title="Success Probability Comparison"
+                  submittedValues={preMitigationTextFields}
                 />
+                <TimeVsQueries2
+                  queriesPerMonth={inputParams.queriesAttackerExecutesPerMonth}
+                  onMouseUp={(data) => {
+                  //   const timeForQueries = Array.from(
+                  //     { length: 1000 },
+                  //     (_, i) => getTimeForQueries(i, data)
+                  //   );
+                  //   const baselineCurve =
+                  //     generateCurvePoints(baselineTextFields);
+                  //   const preMitigationCurve = generateCurvePoints(
+                  //     preMitigationTextFields
+                  //   );
+
+                  //   const updatedParams = {
+                  //     ...inputParams,
+                  //     timeToExecuteQueries: timeForQueries,
+                  //     baselineSuccessProbabilityGivenEffort: baselineCurve,
+                  //     preMitigationSuccessProbabilityGivenEffort:
+                  //       preMitigationCurve,
+                  //   };
+
+                  //   setInputParams(updatedParams);
+                  //   const newOutputParams =
+                  //     runModelWithErrorHandling(updatedParams);
+                  //   if (newOutputParams) {
+                  //     setOutputParams(newOutputParams);
+                  //   }
+                  }}
+                />
+
               </div>
             </div>
 

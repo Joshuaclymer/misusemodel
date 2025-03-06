@@ -10,7 +10,7 @@ let pathCache = {
   length: null
 };
 
-const getQueriesAtTime = (time, points) => {
+const getQueriesAtBans = (time, points) => {
   // Update cache if points changed
   if (pathCache.points !== points) {
     const sortedPoints = [...points].sort((a, b) => a.time - b.time);
@@ -66,19 +66,19 @@ const getTangentLine = (points) => {
   const t2 = lastPoint.time;
   const t1 = Math.max(0, t2 - 5); // Get a point 5 days back
   
-  const q2 = getQueriesAtTime(t2, points);
-  const q1 = getQueriesAtTime(t1, points);
+  const q2 = getQueriesAtBans(t2, points);
+  const q1 = getQueriesAtBans(t1, points);
   
   // Calculate slope in linear space
   const slope = (q2 - q1) / (t2 - t1);
   
   // Calculate end point at max time (45 days)
-  const endTime = Math.min(45, t2 + (45 - t2));
-  const endQueries = Math.min(1000, q2 + slope * (endTime - t2));
+  const endBans = Math.min(45, t2 + (45 - t2));
+  const endQueries = Math.min(1000, q2 + slope * (endBans - t2));
   
   return [
     { time: t2, queries: q2 },
-    { time: endTime, queries: endQueries },
+    { time: endBans, queries: endQueries },
   ];
 };
 
@@ -89,7 +89,7 @@ let timeInterpolatorCache = {
 };
 
 // Get all times for queries 0-1000 efficiently using interpolation
-const getTimeForQueries = (targetQueries, points) => {
+const getBansForQueries = (targetQueries, points) => {
   // Sort points by time
   const sortedPoints = [...points].sort((a, b) => a.time - b.time);
   const lastPoint = sortedPoints[sortedPoints.length - 1];
@@ -98,14 +98,14 @@ const getTimeForQueries = (targetQueries, points) => {
   const t2 = lastPoint.time;
   const t1 = t2 - 5; // Get a point 5 days back
   
-  const q2 = getQueriesAtTime(t2, points);
-  const q1 = getQueriesAtTime(t1, points);
+  const q2 = getQueriesAtBans(t2, points);
+  const q1 = getQueriesAtBans(t1, points);
   
   // Calculate slope in linear space
   const slope = (q2 - q1) / (t2 - t1);
 
   // Function to get time for a single query value
-  const getTimeForQuery = (query) => {
+  const getBansForQuery = (query) => {
     // If query is beyond the last point, use tangent line extrapolation
     if (query > q2) {
       const queryDiff = query - q2;
@@ -121,13 +121,13 @@ const getTimeForQueries = (targetQueries, points) => {
       const queries = [];
 
       // Generate evenly spaced points for time
-      const minTime = sortedPoints[0].time;
-      const maxTime = lastPoint.time;
+      const minBans = sortedPoints[0].time;
+      const maxBans = lastPoint.time;
       
       for (let i = 0; i < numPoints; i++) {
-        const t = minTime + (maxTime - minTime) * (i / (numPoints - 1));
+        const t = minBans + (maxBans - minBans) * (i / (numPoints - 1));
         times.push(t);
-        queries.push(getQueriesAtTime(t, points));
+        queries.push(getQueriesAtBans(t, points));
       }
 
       timeInterpolatorCache = {
@@ -144,15 +144,15 @@ const getTimeForQueries = (targetQueries, points) => {
 
   // Handle array or single value
   if (typeof targetQueries === 'number') {
-    return getTimeForQuery(targetQueries);
+    return getBansForQuery(targetQueries);
   }
 
-  return Array.from({length: 1001}, (_, i) => getTimeForQuery(i));
+  return Array.from({length: 1001}, (_, i) => getBansForQuery(i));
 };
 
-const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
+const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   // State for managing the data
-  const [queryTimeData, setTimeQueriesData] = useState([]);
+  const [queryBansData, setBansQueriesData] = useState([]);
   const [interpolatedData, setInterpolatedData] = useState([]);
   const [interpolatedTangent, setInterpolatedTangent] = useState([]);
   const [draggedPointIndex, setDraggedPointIndex] = useState(null);
@@ -164,31 +164,31 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
       { time: 22.5, queries: 25 }, // Middle point slightly above the diagonal
       { time: 45, queries: 45 }, // End at max x,y
     ];
-    setTimeQueriesData(initialControlPoints);
+    setBansQueriesData(initialControlPoints);
   }, []);
 
-  // Generate interpolated points whenever queryTimeData changes
+  // Generate interpolated points whenever queryBansData changes
   useEffect(() => {
-    if (queryTimeData.length < 2) return;
+    if (queryBansData.length < 2) return;
     
     // Generate 100 points for smooth curve
     const points = [];
-    const mintime = queryTimeData[0].time;
-    const maxtime = queryTimeData[queryTimeData.length - 1].time;
+    const mintime = queryBansData[0].time;
+    const maxtime = queryBansData[queryBansData.length - 1].time;
     
     for (let i = 0; i <= 100; i++) {
       const t = i / 100;
       const time = mintime * (1-t) + maxtime * t;
       points.push({
         time,
-        queries: getQueriesAtTime(time, queryTimeData)
+        queries: getQueriesAtBans(time, queryBansData)
       });
     }
     
     setInterpolatedData(points);
 
-    setInterpolatedTangent(getTangentLine(queryTimeData));
-  }, [queryTimeData]);
+    setInterpolatedTangent(getTangentLine(queryBansData));
+  }, [queryBansData]);
 
 
 
@@ -220,7 +220,7 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
       const roundedtime = Math.round(newtime * 100) / 100;
       const roundedqueries = Math.round(newqueries * 100) / 100;
 
-      const newData = [...queryTimeData];
+      const newData = [...queryBansData];
       const currentPoint = newData[draggedPointIndex];
 
       // Only update if the change is significant enough and point is not fixed
@@ -233,18 +233,18 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
         const nextPoint = newData[draggedPointIndex + 1];
         
         // Constrain time to be between prev and next points with minimum log-space gap
-        let constrainedTime = roundedtime;
+        let constrainedBans = roundedtime;
         const MIN_LOG_GAP = 0.1; // Minimum gap in log space (about 10% difference)
         
         if (prevPoint) {
           // Ensure point is at least MIN_LOG_GAP away from previous point in log space
-          const minLogTime = Math.log(prevPoint.time) + MIN_LOG_GAP;
-          constrainedTime = Math.max(constrainedTime, Math.exp(minLogTime));
+          const minLogBans = Math.log(prevPoint.time) + MIN_LOG_GAP;
+          constrainedBans = Math.max(constrainedBans, Math.exp(minLogBans));
         }
         if (nextPoint) {
           // Ensure point is at least MIN_LOG_GAP away from next point in log space
-          const maxLogTime = Math.log(nextPoint.time) - MIN_LOG_GAP;
-          constrainedTime = Math.min(constrainedTime, Math.exp(maxLogTime));
+          const maxLogBans = Math.log(nextPoint.time) - MIN_LOG_GAP;
+          constrainedBans = Math.min(constrainedBans, Math.exp(maxLogBans));
         }
         
         // Constrain queries to be between prev and next points
@@ -257,17 +257,17 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
         }
 
         newData[draggedPointIndex] = {
-          time: constrainedTime,
+          time: constrainedBans,
           queries: constrainedQueries,
         };
-        setTimeQueriesData(newData);
+        setBansQueriesData(newData);
       }
     };
 
     const handleMouseUp = () => {
       setDraggedPointIndex(null);
       // Sort points by x-value after drag ends
-      setTimeQueriesData(prev => {
+      setBansQueriesData(prev => {
         const sorted = [...prev].sort((a, b) => a.time - b.time);
         onMouseUp?.(sorted);
         return sorted;
@@ -286,7 +286,7 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
       window.removeEventListener("mouseup", handleMouseUp);
       document.body.style.userSelect = "";
     };
-  }, [draggedPointIndex, queryTimeData, onMouseUp]);
+  }, [draggedPointIndex, queryBansData, onMouseUp]);
 
   const handleDragStart = (event, index) => {
     event.preventDefault();
@@ -303,14 +303,14 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
       }}
     >
       <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-        Queries vs Time
+        Bans vs Queries
       </h3>
       <LineChart
         className="query-queries-chart"
         width={400}
         height={350}
         margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
-        data={queryTimeData}
+        data={queryBansData}
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
@@ -321,7 +321,7 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
           ticks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45]}
           tickFormatter={(value) => value}
           label={{
-            value: "Time spent by red team (days)",
+            value: "Bans spent by red team (days)",
             position: "bottom",
             offset: 20,
           }}
@@ -339,7 +339,7 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
         {/* Tangent line */}
         <Line
           type="linear"
-          data={getTangentLine(queryTimeData)}
+          data={getTangentLine(queryBansData)}
           dataKey="queries"
           stroke="#3498db"
           strokeWidth={2}
@@ -399,5 +399,5 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   );
 };
 
-export { getTimeForQueries, getQueriesAtTime };
-export default TimeVsQueries;
+export { getBansForQueries, getQueriesAtBans };
+export default BansVsQueries;

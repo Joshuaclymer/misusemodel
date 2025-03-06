@@ -10,6 +10,7 @@ import {
   Legend
 } from 'recharts';
 import { fitCurveWithFritschCarlson } from '../utils/curves.js';
+import { maxTimeMonths } from '../App.js';
 
 const ANCHOR_MONTHS = [3, 12, 36];
 
@@ -27,7 +28,7 @@ const generateData = (parameters) => {
     const x = i / 100;
     // Use log scale from 0.1 months to 60 months (5 years)
     const time = Math.exp(
-      Math.log(0.1) + x * (Math.log(60) - Math.log(0.1))
+      Math.log(0.1) + x * (Math.log(maxTimeMonths) - Math.log(0.1))
     );
 
     // Calculate success probability using Fritsch-Carlson interpolation
@@ -39,14 +40,14 @@ const generateData = (parameters) => {
 
     points.push({
       time,
-      successProbability: successProb,
+      successProbability: successProb
     });
   }
 
   return points;
 };
 
-const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probability Parameters' }) => {
+const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probability Parameters', hideLabels = false }) => {
   // Values shown in the input fields
   const [inputValues, setInputValues] = useState({
     successanch1: 0.1,
@@ -142,9 +143,9 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probabi
         <XAxis
           dataKey="time"
           scale="log"
-          domain={[0.1, 60]}
+          domain={[0.1, maxTimeMonths]}
           type="number"
-          ticks={[0.1, 1, 3, 6, 12, 24, 36, 48, 60]}
+          ticks={[0.1, 1, 3, 6, 12, 24, 36, maxTimeMonths]}
           label={{
             value: "Months (log scale)",
             position: "bottom",
@@ -153,7 +154,8 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probabi
           tickFormatter={(value) => value.toFixed(1)}
         />
         <YAxis
-          domain={[0, 1]}
+          domain={[0, 'dataMax']}
+          tickFormatter={(value) => Number(value.toPrecision(2))}
           label={{
             value: "Success Probability",
             angle: -90,
@@ -179,8 +181,8 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probabi
         <Line
           type="monotone"
           dataKey="successProbability"
-          stroke="#2e8b57"
-          name="Success probability conditional on effort"
+          stroke="#2ecc71"
+          name="Success Probability"
           dot={false}
         />
       </LineChart>
