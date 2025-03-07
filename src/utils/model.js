@@ -1,25 +1,35 @@
 import { fitQueriesCurve } from "../components/QueriesVsTime.jsx";
 import { maxTimeMonths } from "../App.js";
+import { generateCDFData } from "../components/EffortCDF.jsx";
 
 // Calculate expected annual fatalities based on success probability and other factors
 export const calculateExpectedAnnualFatalities = (
   successProbabilityGivenEffort,
   expectedAnnualAttempts,
-  expectedFatalitiesPerSuccessfulAttempt
+  expectedFatalitiesPerSuccessfulAttempt,
+  effortCDF
 ) => {
+
+  console.log("effortCDF", effortCDF)
   // Calculate the expected number of successful attempts
-  const expectedSuccessfulAttempts =
-    successProbabilityGivenEffort.reduce(
-      (acc, point) => acc + point.successProbability,
-      0
-    ) / successProbabilityGivenEffort.length;
+  var sumOfSuccessProbabilities = 0;
+  var sumOfTimeProbabilities = 0;
+  for (let i = 1; i < effortCDF.length; i++) {
+    const timeThisStep = effortCDF[i].months
+    const nearestSuccessProbabilityPoint = successProbabilityGivenEffort.find(p => p.time >= timeThisStep);
+    if (!nearestSuccessProbabilityPoint) {
+      continue;
+    }
+    const probabilityOfTime = (effortCDF[i].months - effortCDF[i - 1].months);
+    sumOfSuccessProbabilities += nearestSuccessProbabilityPoint.successProbability * probabilityOfTime;
+    sumOfTimeProbabilities += probabilityOfTime;
+  }
+  const expectedSuccess = sumOfSuccessProbabilities / sumOfTimeProbabilities;
+  const expectedAnnualFatalities = expectedSuccess * expectedAnnualAttempts * expectedFatalitiesPerSuccessfulAttempt;
+  console.log("expectedAnnualFatalities", expectedAnnualFatalities)
 
   // Calculate total expected fatalities
-  return (
-    expectedSuccessfulAttempts *
-    expectedAnnualAttempts *
-    expectedFatalitiesPerSuccessfulAttempt
-  );
+  return expectedAnnualFatalities;
 };
 
 export const calculateTimeToExecuteQueriesGivenBans = ({
@@ -27,7 +37,6 @@ export const calculateTimeToExecuteQueriesGivenBans = ({
   timeLostGivenBans,
   timeToExecuteQueries,
 }) => {
-  console.log("calculating time to execute queries given bans");
   let timeToExecuteQueriesGivenBans = [];
 
   // Collect points with adaptive sampling
@@ -44,9 +53,8 @@ export const calculateTimeToExecuteQueriesGivenBans = ({
       time: time,
       queries: i,
     });
-
   }
-  
+
   // // Calculate tangent line from last two points
   // if (timeToExecuteQueriesGivenBans.length >= 2) {
   //   const lastPoint =
@@ -62,7 +70,7 @@ export const calculateTimeToExecuteQueriesGivenBans = ({
   //   // Start from the last valid point and extrapolate until we hit bounds
   //   let currentTime = lastPoint.time;
   //   let currentQueries = lastPoint.queries;
-  //   while currentQueries 
+  //   while currentQueries
   //   const step = 0.1;
 
   //   while (currentTime < 45 && currentQueries < 45) {
@@ -82,7 +90,6 @@ export const calculateTimeToExecuteQueriesGivenBans = ({
   //   }
   // }
 
-  console.log("returned");
   // for debugging
   // return Array.from({ length: 1000 }, (_, i) => i + 1)
   return timeToExecuteQueriesGivenBans;
@@ -119,22 +126,21 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
 ) => {
   console.log("getting post mitigation success prob");
   // First calculate all points
-  const timeToExecuteQueriesGivenBans =
-    calculateTimeToExecuteQueriesGivenBans({
-      bansGivenQueries: bansVsQueries,
-      timeLostGivenBans,
-      timeToExecuteQueries,
-    }); // Convert days to months
+  const timeToExecuteQueriesGivenBans = calculateTimeToExecuteQueriesGivenBans({
+    bansGivenQueries: bansVsQueries,
+    timeLostGivenBans,
+    timeToExecuteQueries,
+  }); // Convert days to months
 
   const points = [];
-  for (let queries = 0; queries < timeToExecuteQueriesGivenBans.length; queries++) {
+  for (
+    let queries = 0;
+    queries < timeToExecuteQueriesGivenBans.length;
+    queries++
+  ) {
     const timeBetweenQueries = 1 / queriesAttackerExecutesPerMonth;
     const timeIfUnmitigated = queries * timeBetweenQueries;
 
-    // console.log("bansVsQueries", bansVsQueries);
-    // console.log("timeLostGivenBans", timeLostGivenBans);
-    // console.log("timeToExecuteQueries", timeToExecuteQueries);
-    // console.log("timeToExecuteQueriesGivenBans", timeToExecuteQueriesGivenBans);
     // Find the matching query point
     const queryPoint = timeToExecuteQueriesGivenBans.find(
       (point) => point.queries === queries
@@ -194,27 +200,35 @@ export const runModel = (params) => {
       params.bansVsQueries,
       params.timeLostToBans
     );
-  console.log(
-    "RESULT: postMitigationSuccessProbabilityGivenEffort",
-    postMitigationSuccessProbabilityGivenEffort
+  const baselineExpectedAnnualFatalities = calculateExpectedAnnualFatalities(
+    params.baselineSuccessProbabilityGivenEffort,
+    params.expectedAnnualAttempts,
+    params.expectedFatalitiesPerSuccessfulAttempt,
+    params.effortCDF
   );
+
+  const preMitigationExpectedAnnualFatalities =
+    calculateExpectedAnnualFatalities(
+      params.preMitigationSuccessProbabilityGivenEffort,
+      params.expectedAnnualAttempts,
+      params.expectedFatalitiesPerSuccessfulAttempt,
+      params.effortCDF
+    );
+  
+    console.log("preMitigationExpectedAnnualFatalities", preMitigationExpectedAnnualFatalities);
+
+  const postMitigationExpectedAnnualFatalities =
+    calculateExpectedAnnualFatalities(
+      postMitigationSuccessProbabilityGivenEffort,
+      params.expectedAnnualAttempts,
+      params.expectedFatalitiesPerSuccessfulAttempt,
+      params.effortCDF
+    );
 
   return {
     postMitigationSuccessProbabilityGivenEffort,
-    baselineExpectedAnnualFatalities: calculateExpectedAnnualFatalities(
-      params.baselineSuccessProbabilityGivenEffort,
-      params.expectedAnnualAttempts,
-      params.expectedFatalitiesPerSuccessfulAttempt
-    ),
-    preMitigationExpectedAnnualFatalities: calculateExpectedAnnualFatalities(
-      params.preMitigationSuccessProbabilityGivenEffort,
-      params.expectedAnnualAttempts,
-      params.expectedFatalitiesPerSuccessfulAttempt
-    ),
-    postMitigationExpectedAnnualFatalities: calculateExpectedAnnualFatalities(
-      postMitigationSuccessProbabilityGivenEffort,
-      params.expectedAnnualAttempts,
-      params.expectedFatalitiesPerSuccessfulAttempt
-    ),
+    baselineExpectedAnnualFatalities,
+    preMitigationExpectedAnnualFatalities,
+    postMitigationExpectedAnnualFatalities,
   };
 };

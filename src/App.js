@@ -12,6 +12,7 @@ import { generateCurvePoints } from "./utils/curves.js";
 import TimeLostToBans from "./components/TimeLostToBans.jsx";
 import { getTimeLostGivenBans } from "./components/TimeLostToBans.jsx";
 import QueriesVsTimeWithBans from "./components/QueriesVsTimeWithBans.jsx";
+import { generateCDFData } from "./components/EffortCDF.jsx";
 
 import {
   runModel,
@@ -23,7 +24,6 @@ export const maxTimeMonths = 60; // 60 months
 
 function App() {
   const [error, setError] = useState({ message: "", stack: "" });
-  const queriesPerMonth = 30;
 
   // Input parameters
   // Initialize baseline and pre-mitigation text fields
@@ -44,8 +44,9 @@ function App() {
     baselineSuccessProbabilityGivenEffort: [],
     preMitigationSuccessProbabilityGivenEffort: [],
     timeToExecuteQueries: [],
+    effortCDF: [],
     expectedFatalitiesPerSuccessfulAttempt: 1000000,
-    expectedAnnualAttempts: 1000,
+    expectedAnnualAttempts: 5,
     queriesAttackerExecutesPerMonth: 30,
     banCurve: [],
     bansVsQueries: [],
@@ -72,8 +73,11 @@ function App() {
       { time: 45, queries: 3.2 }, // End point
     ];
 
-    // Calculate array size to reach maxTimeMonths
-    const arraySize = Math.ceil(maxTimeMonths * queriesPerMonth) + 1;
+    const initialEffortPoints = {
+      effortanch1: 90,
+      effortanch2: 95,
+      effortanch3: 98,
+    };
 
     const initialParams = {
       baselineSuccessProbabilityGivenEffort:
@@ -86,18 +90,21 @@ function App() {
       bansVsQueries: getBansForQueries(initialBansVsQueries),
       timeLostToBans: getTimeLostGivenBans(initialTimeLostToBans),
       expectedFatalitiesPerSuccessfulAttempt: 1000000,
-      expectedAnnualAttempts: 1000,
+      expectedAnnualAttempts: 5,
+      effortCDF: generateCDFData(initialEffortPoints),
       queriesAttackerExecutesPerMonth: 30,
     };
 
     setInputParams(initialParams);
 
     // Run model with initial data
-    const initialOutputParams = runModelWithErrorHandling(initialParams);
-    if (initialOutputParams) {
+    try {
+      const initialOutputParams = runModel(initialParams);
       setOutputParams(initialOutputParams);
+    } catch (e) {
+      setError({ message: e.message, stack: e.stack });
     }
-  }, []);
+  }, []); // Empty dependency array since this is initialization code
 
   // Output parameters
   const [outputParams, setOutputParams] = useState({
@@ -107,47 +114,29 @@ function App() {
     postMitigationExpectedAnnualFatalities: null,
   });
 
-  // Initialize input parameters from text data
-  const computeInputParamsFromTextFields = () => {
+  // Update input params whenever text fields change
+  useEffect(() => {
     try {
-      setInputParams({
-        ...inputParams,
-        baselineSuccessProbabilityGivenEffort:
-          generateCurvePoints(baselineTextFields),
-        preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(
-          preMitigationTextFields
-        ),
-      });
+      setInputParams(prev => ({
+        ...prev,
+        baselineSuccessProbabilityGivenEffort: generateCurvePoints(baselineTextFields),
+        preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(preMitigationTextFields)
+      }));
     } catch (e) {
       setError({ message: e.message, stack: e.stack });
-      return null;
     }
-  };
+  }, [baselineTextFields, preMitigationTextFields]);
 
-  // Wrapper for runModel that handles errors
-  const runModelWithErrorHandling = (params) => {
+  // Run model whenever input params change
+  useEffect(() => {
     try {
-      return runModel(params);
-    } catch (e) {
-      setError({ message: e.message, stack: e.stack });
-      return null;
-    }
-  };
-
-  // Function to refresh the page state
-  const refreshPage = () => {
-    try {
-      computeInputParamsFromTextFields();
-      // console.log(inputParams.timeToExecuteQueries);
-      const newOutputParams = runModelWithErrorHandling(inputParams);
-      if (!newOutputParams) return;
-
+      const newOutputParams = runModel(inputParams);
       setOutputParams(newOutputParams);
       setError({ message: "", stack: "" });
     } catch (e) {
       setError({ message: e.message, stack: e.stack });
     }
-  };
+  }, [inputParams]);
 
   return (
     <div className="App" style={{ padding: "20px" }}>
@@ -156,13 +145,6 @@ function App() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            refreshPage();
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && e.target.tagName === "INPUT") {
-              e.preventDefault();
-              refreshPage();
-            }
           }}
         >
           <div
@@ -197,12 +179,14 @@ function App() {
                       type="number"
                       value={inputParams.expectedAnnualAttempts}
                       onChange={(e) => {
+                        const value = e.target.value;
                         setInputParams((prev) => ({
                           ...prev,
-                          expectedAnnualAttempts: parseFloat(e.target.value),
+                          expectedAnnualAttempts:
+                            value === "" ? "" : parseFloat(value),
                         }));
-                        refreshPage();
                       }}
+                      onBlur={() => {}}
                       style={{ width: "80px", marginLeft: "10px" }}
                     />
                   </div>
@@ -212,15 +196,34 @@ function App() {
                       type="number"
                       value={inputParams.expectedFatalitiesPerSuccessfulAttempt}
                       onChange={(e) => {
+                        const value = e.target.value;
                         setInputParams((prev) => ({
                           ...prev,
-                          expectedFatalitiesPerSuccessfulAttempt: parseFloat(
-                            e.target.value
-                          ),
+                          expectedFatalitiesPerSuccessfulAttempt:
+                            value === "" ? "" : parseFloat(value),
                         }));
-                        refreshPage();
                       }}
+                      onBlur={() => {}}
                       style={{ width: "120px", marginLeft: "10px" }}
+                    />
+                  </div>
+                  <div>
+                    <label>Queries Per Month:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={inputParams.queriesAttackerExecutesPerMonth}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setInputParams((prev) => ({
+                          ...prev,
+                          queriesAttackerExecutesPerMonth:
+                            value === "" ? "" : parseInt(value, 10),
+                        }));
+                      }}
+                      onBlur={() => {}}
+                      style={{ width: "80px", marginLeft: "10px" }}
                     />
                   </div>
                 </div>
@@ -229,11 +232,10 @@ function App() {
 
             <EffortCDF
               onChange={(params) => {
-                setPreMitigationTextFields((prev) => ({
+                setInputParams(prev => ({
                   ...prev,
-                  ...params,
+                  effortCDF: generateCDFData(params)
                 }));
-                refreshPage();
               }}
             />
             {/* Main Columns */}
@@ -262,22 +264,14 @@ function App() {
                 </h2>
                 <SuccessGivenEffort
                   onChange={(params) => {
-                    setBaselineTextFields((prev) => ({
-                      ...prev,
-                      ...params,
-                    }));
-                    refreshPage();
+                    setBaselineTextFields(params);
                   }}
                   data={inputParams.baselineSuccessProbabilityGivenEffort}
                 />
 
                 <ExpectedAnnualFatalities
-                  successProbabilityGivenEffort={
-                    inputParams.baselineSuccessProbabilityGivenEffort
-                  }
-                  expectedAnnualAttempts={inputParams.expectedAnnualAttempts}
-                  expectedFatalitiesPerSuccessfulAttempt={
-                    inputParams.expectedFatalitiesPerSuccessfulAttempt
+                  expectedAnnualFatalities={
+                    outputParams.baselineExpectedAnnualFatalities
                   }
                 />
               </div>
@@ -304,26 +298,15 @@ function App() {
                 </h2>
                 <SuccessGivenEffort
                   onChange={(params) => {
-                    setPreMitigationTextFields((prev) => ({
-                      ...prev,
-                      ...params,
-                    }));
-                    refreshPage();
+                    setPreMitigationTextFields(params);
                   }}
                   data={inputParams.preMitigationSuccessProbabilityGivenEffort}
                 />
 
                 <div style={{ textAlign: "center", width: "100%" }}>
-                  <h3 style={{ margin: "0 0 10px 0" }}>
-                    Expected Annual Fatalities
-                  </h3>
                   <ExpectedAnnualFatalities
-                    successProbabilityGivenEffort={
-                      outputParams.postMitigationSuccessProbabilityGivenEffort
-                    }
-                    expectedAnnualAttempts={inputParams.expectedAnnualAttempts}
-                    expectedFatalitiesPerSuccessfulAttempt={
-                      inputParams.expectedFatalitiesPerSuccessfulAttempt
+                    expectedAnnualFatalities={
+                      outputParams.preMitigationExpectedAnnualFatalities
                     }
                   />
                 </div>
@@ -376,10 +359,11 @@ function App() {
                     };
 
                     setInputParams(updatedParams);
-                    const newOutputParams =
-                      runModelWithErrorHandling(updatedParams);
-                    if (newOutputParams) {
+                    try {
+                      const newOutputParams = runModel(updatedParams);
                       setOutputParams(newOutputParams);
+                    } catch (e) {
+                      setError({ message: e.message, stack: e.stack });
                     }
                   }}
                 />
@@ -404,30 +388,7 @@ function App() {
                       banCurve: banCurve,
                       bansVsQueries: bansVsQueries,
                     }));
-                    //   const timeForQueries = Array.from(
-                    //     { length: 1000 },
-                    //     (_, i) => fitCurve(i, data)
-                    //   );
-                    //   const baselineCurve =
-                    //     generateCurvePoints(baselineTextFields);
-                    //   const preMitigationCurve = generateCurvePoints(
-                    //     preMitigationTextFields
-                    //   );
 
-                    //   const updatedParams = {
-                    //     ...inputParams,
-                    //     timeToExecuteQueries: timeForQueries,
-                    //     baselineSuccessProbabilityGivenEffort: baselineCurve,
-                    //     preMitigationSuccessProbabilityGivenEffort:
-                    //       preMitigationCurve,
-                    //   };
-
-                    //   setInputParams(updatedParams);
-                    //   const newOutputParams =
-                    //     runModelWithErrorHandling(updatedParams);
-                    //   if (newOutputParams) {
-                    //     setOutputParams(newOutputParams);
-                    //   }
                   }}
                 />
                 <TimeLostToBans
@@ -477,31 +438,7 @@ function App() {
               </div>
             )}
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                marginTop: "40px",
-                marginBottom: "20px",
-              }}
-            >
-              <button
-                onClick={() => refreshPage()}
-                type="button"
-                style={{
-                  padding: "12px 24px",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  width: "200px",
-                  fontSize: "16px",
-                }}
-              >
-                Refresh
-              </button>
-            </div>
+
           </div>
         </form>
       </div>

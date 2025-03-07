@@ -6,11 +6,23 @@ const ANCHOR_MONTHS = [3, 12, 36];
 
 
 
-const generateCDFData = (parameters) => {
+export const generateCDFData = (parameters) => {
+  // Handle array input by taking first element
+  const params = Array.isArray(parameters) ? parameters[0] : parameters;
+  if (!params || typeof params !== 'object') {
+    console.error('Invalid parameters passed to generateCDFData:', parameters);
+    return [];
+  }
+
   const points = [];
-  const panch1 = parameters.effortanch1;
-  const panch2 = parameters.effortanch2;
-  const panch3 = parameters.effortanch3;
+  const panch1 = params.effortanch1;
+  const panch2 = params.effortanch2;
+  const panch3 = params.effortanch3;
+
+  if (panch1 === undefined || panch2 === undefined || panch3 === undefined) {
+    console.error('Missing required anchor points:', params);
+    return [];
+  }
 
   // Validate parameters
   if (
