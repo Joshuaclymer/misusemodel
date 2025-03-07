@@ -9,71 +9,64 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { getBansForQueries } from "./TimeLostToBans.jsx";
+import { calculateTimeToExecuteQueriesGivenBans } from "../utils/model.js";
 
 const QueriesVsTimeWithBans = ({
   timeToExecuteQueries, // timeToExecuteQueries
-  banData, // from BansVsQueries
-  timeLostData = [], // from TimeLostToBans
+  bansGivenQueries, // from BansVsQueries
+  timeLostGivenBans = [], // from TimeLostToBans
 }) => {
-  let timeToExecuteQueriesDisplayed = [];
-  console.log("banCurveData", banData)
-  console.log("timeLostData", timeLostData)
-  console.log("timeToExecuteQueries", timeToExecuteQueries)
-  
-  // Collect points with adaptive sampling
-  let lastValidIndex = 0;
+  let timeToExecuteQueriesDisplayed = calculateTimeToExecuteQueriesGivenBans({
+    bansGivenQueries,
+    timeLostGivenBans,
+    timeToExecuteQueries,
+  });
+  let smoothedTimeToExecuteQueriesDisplayed = [];
   let lastAddedTime = -1;
+  let lastValidIndex = -1;
   const minTimeGap = 5; // Minimum gap between points to reduce density
-  
-  for (let i = 0; i <= 45; i++) {
-    const numBans = Math.floor(banData[i]);
-    const totalTimeLostDueToBans = timeLostData[numBans];
-    const execTime = timeToExecuteQueries[i] || 0;
-    const time = execTime + totalTimeLostDueToBans;
-    
-    if (time < 45) {
-      // Add point if it's the first point, last point, or if enough time has passed
-      if (i === 0 || time - lastAddedTime >= minTimeGap || i === 45) {
-        timeToExecuteQueriesDisplayed.push({
-          time: time,
-          queries: i,
+  for (let i = 0; i < timeToExecuteQueriesDisplayed.length; i++) {
+    const { time, queries } = timeToExecuteQueriesDisplayed[i];
+    if (i === 0 || time - lastAddedTime >= minTimeGap || i === 45) {
+      lastAddedTime = time;
+      lastValidIndex = i;
+      smoothedTimeToExecuteQueriesDisplayed.push({
+        time: time,
+        queries: queries,
+      });
+    }
+    // Add point if it's the first point, last point, or if enough time has passed
+    if (time > 45 || queries > 45) {
+      lastAddedTime = time;
+      lastValidIndex = i;
+      let lastPointQueriesBeforeAdjustment = queries;
+      let lastPointTimeBeforeAdjustment = time;
+      // Adjust the last point time so that it is within the plot's bounds (45 by 45). Adjust via linear interpolation
+      if (lastPointTimeBeforeAdjustment > 45) {
+        let lastPointTimeAfterAdjustment = 45;
+        const prevPoint = smoothedTimeToExecuteQueriesDisplayed[smoothedTimeToExecuteQueriesDisplayed.length - 1];
+        const t = (45 - prevPoint.time) / (lastPointTimeBeforeAdjustment - prevPoint.time);
+        let lastPointQueriesAfterAdjustment = prevPoint.queries + t * (lastPointQueriesBeforeAdjustment - prevPoint.queries);
+        lastPointQueriesAfterAdjustment = Math.min(45, lastPointQueriesAfterAdjustment);
+        smoothedTimeToExecuteQueriesDisplayed.push({
+          time: lastPointTimeAfterAdjustment,
+          queries: lastPointQueriesAfterAdjustment
         });
-        lastAddedTime = time;
-        lastValidIndex = i;
+      } else if (lastPointQueriesBeforeAdjustment > 45) {
+        let lastPointQueriesAfterAdjustment = 45;
+        const prevPoint = smoothedTimeToExecuteQueriesDisplayed[smoothedTimeToExecuteQueriesDisplayed.length - 1];
+        const t = (45 - prevPoint.queries) / (lastPointQueriesBeforeAdjustment - prevPoint.queries);
+        let lastPointTimeAfterAdjustment = prevPoint.time + t * (lastPointTimeBeforeAdjustment - prevPoint.time);
+        lastPointTimeAfterAdjustment = Math.min(45, lastPointTimeAfterAdjustment);
+        smoothedTimeToExecuteQueriesDisplayed.push({
+          time: lastPointTimeAfterAdjustment,
+          queries: lastPointQueriesAfterAdjustment
+        });
       }
-    } else {
       break;
     }
   }
-  
-  // Calculate tangent line from last two points
-  if (timeToExecuteQueriesDisplayed.length >= 2) {
-    const lastPoint = timeToExecuteQueriesDisplayed[timeToExecuteQueriesDisplayed.length - 1];
-    const prevPoint = timeToExecuteQueriesDisplayed[timeToExecuteQueriesDisplayed.length - 2];
-    
-    // Calculate slope using last two points
-    const slope = (lastPoint.queries - prevPoint.queries) / (lastPoint.time - prevPoint.time);
-    
-    // Start from the last valid point and extrapolate until we hit bounds
-    let currentTime = lastPoint.time;
-    let currentQueries = lastPoint.queries;
-    const step = 0.1;
-    
-    while (currentTime < 45 && currentQueries < 45) {
-      const nextTime = currentTime + step;
-      const nextQueries = lastPoint.queries + slope * (nextTime - lastPoint.time);
-      
-      if (nextTime > 45 || nextQueries > 45) break;
-      
-      timeToExecuteQueriesDisplayed.push({
-        time: nextTime,
-        queries: nextQueries,
-      });
-      
-      currentTime = nextTime;
-      currentQueries = nextQueries;
-    }
-  }
+
   return (
     <div
       style={{
@@ -87,7 +80,7 @@ const QueriesVsTimeWithBans = ({
         Queries vs Time with Bans
       </h3>
       <LineChart
-        data={timeToExecuteQueriesDisplayed}
+        data={smoothedTimeToExecuteQueriesDisplayed}
         margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
         width={400}
         height={350}
@@ -125,4 +118,3 @@ const QueriesVsTimeWithBans = ({
 };
 
 export default QueriesVsTimeWithBans;
-

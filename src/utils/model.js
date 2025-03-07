@@ -22,10 +22,76 @@ export const calculateExpectedAnnualFatalities = (
   );
 };
 
+export const calculateTimeToExecuteQueriesGivenBans = ({
+  bansGivenQueries,
+  timeLostGivenBans,
+  timeToExecuteQueries,
+}) => {
+  console.log("calculating time to execute queries given bans");
+  let timeToExecuteQueriesGivenBans = [];
+
+  // Collect points with adaptive sampling
+  let lastValidIndex = 0;
+  let lastAddedTime = -1;
+  const minTimeGap = 5; // Minimum gap between points to reduce density
+
+  for (let i = 0; i <= 1000; i++) {
+    const numBans = Math.floor(bansGivenQueries[i]);
+    const totalTimeLostDueToBans = timeLostGivenBans[numBans];
+    const execTime = timeToExecuteQueries[i] || 0;
+    const time = execTime + totalTimeLostDueToBans;
+    timeToExecuteQueriesGivenBans.push({
+      time: time,
+      queries: i,
+    });
+
+  }
+  
+  // // Calculate tangent line from last two points
+  // if (timeToExecuteQueriesGivenBans.length >= 2) {
+  //   const lastPoint =
+  //     timeToExecuteQueriesGivenBans[timeToExecuteQueriesGivenBans.length - 1];
+  //   const prevPoint =
+  //     timeToExecuteQueriesGivenBans[timeToExecuteQueriesGivenBans.length - 2];
+
+  //   // Calculate slope using last two points
+  //   const slope =
+  //     (lastPoint.queries - prevPoint.queries) /
+  //     (lastPoint.time - prevPoint.time);
+
+  //   // Start from the last valid point and extrapolate until we hit bounds
+  //   let currentTime = lastPoint.time;
+  //   let currentQueries = lastPoint.queries;
+  //   while currentQueries 
+  //   const step = 0.1;
+
+  //   while (currentTime < 45 && currentQueries < 45) {
+  //     const nextTime = currentTime + step;
+  //     const nextQueries =
+  //       lastPoint.queries + slope * (nextTime - lastPoint.time);
+
+  //     if (nextTime > 45 || nextQueries > 45) break;
+
+  //     timeToExecuteQueriesGivenBans.push({
+  //       time: nextTime,
+  //       queries: nextQueries,
+  //     });
+
+  //     currentTime = nextTime;
+  //     currentQueries = nextQueries;
+  //   }
+  // }
+
+  console.log("returned");
+  // for debugging
+  // return Array.from({ length: 1000 }, (_, i) => i + 1)
+  return timeToExecuteQueriesGivenBans;
+};
+
 // Helper function to interpolate values from an array of objects
 const arrayToFunction = (array, inputKey, outputKey, inputValue) => {
   // Find the index of the first point that is greater than our input value
-  const index = array.findIndex(point => point[inputKey] > inputValue);
+  const index = array.findIndex((point) => point[inputKey] > inputValue);
 
   if (index === -1) return array[array.length - 1][outputKey]; // Value is after last point
   if (index === 0) return array[0][outputKey]; // Value is before first point
@@ -49,19 +115,41 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
   timeToExecuteQueries,
   preMitigationSuccessProbability,
   bansVsQueries,
+  timeLostGivenBans
 ) => {
-  console.log("0", bansVsQueries);
-  console.log("A,", timeToExecuteQueries);
-  console.log("B,", queriesAttackerExecutesPerMonth);
-  console.log("C,", preMitigationSuccessProbability);
+  console.log("getting post mitigation success prob");
   // First calculate all points
+  const timeToExecuteQueriesGivenBans =
+    calculateTimeToExecuteQueriesGivenBans({
+      bansGivenQueries: bansVsQueries,
+      timeLostGivenBans,
+      timeToExecuteQueries,
+    }); // Convert days to months
+
   const points = [];
-  for (let queries = 0; queries < timeToExecuteQueries.length; queries++) {
+  for (let queries = 0; queries < timeToExecuteQueriesGivenBans.length; queries++) {
     const timeBetweenQueries = 1 / queriesAttackerExecutesPerMonth;
-    const timeIfUnmitigated = queries * timeBetweenQueries; 
-    const timeSpentJailbreaking = timeToExecuteQueries[queries] / 30; // Convert days to months
+    const timeIfUnmitigated = queries * timeBetweenQueries;
+
+    // console.log("bansVsQueries", bansVsQueries);
+    // console.log("timeLostGivenBans", timeLostGivenBans);
+    // console.log("timeToExecuteQueries", timeToExecuteQueries);
+    // console.log("timeToExecuteQueriesGivenBans", timeToExecuteQueriesGivenBans);
+    // Find the matching query point
+    const queryPoint = timeToExecuteQueriesGivenBans.find(
+      (point) => point.queries === queries
+    );
+    if (!queryPoint) {
+      console.error("Error in getPostMitigationSuccessProbabilityGivenEffort:");
+      console.error("Could not find time for queries:", queries);
+      console.error("Available data points:", timeToExecuteQueriesGivenBans);
+      continue;
+    }
+    const timeSpentJailbreaking = queryPoint.time / 30;
+    // console.log("timeSpentJailbreaking", timeSpentJailbreaking);
+    // console.log("timeIfUnmitigated", timeIfUnmitigated);
     const totalTime = timeIfUnmitigated + timeSpentJailbreaking;
-    
+
     const successProbability = arrayToFunction(
       preMitigationSuccessProbability,
       "time",
@@ -74,10 +162,11 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
     // }
 
     if (totalTime < 0.1) continue;
-    else points.push({
-      time: totalTime,
-      successProbability: successProbability,
-    });
+    else
+      points.push({
+        time: totalTime,
+        successProbability: successProbability,
+      });
   }
 
   // Filter out points with zero time, truncate at maxTimeMonths, and sort by time
@@ -85,9 +174,9 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
     .filter((p) => p.time >= 0.1 && p.time <= maxTimeMonths)
     .sort((a, b) => a.time - b.time)
     // Convert to expected format
-    .map(p => ({
+    .map((p) => ({
       time: p.time,
-      successProbability: p.successProbability
+      successProbability: p.successProbability,
     }));
 
   console.log("Valid points:", validPoints);
@@ -102,7 +191,8 @@ export const runModel = (params) => {
       params.queriesAttackerExecutesPerMonth,
       params.timeToExecuteQueries,
       params.preMitigationSuccessProbabilityGivenEffort,
-      params.bansVsQueries
+      params.bansVsQueries,
+      params.timeLostToBans
     );
   console.log(
     "RESULT: postMitigationSuccessProbabilityGivenEffort",

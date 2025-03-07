@@ -22,7 +22,7 @@ import {
 export const maxTimeMonths = 60; // 60 months
 
 function App() {
-  const [error, setError] = useState("");
+  const [error, setError] = useState({ message: "", stack: "" });
   const queriesPerMonth = 30;
 
   // Input parameters
@@ -119,7 +119,7 @@ function App() {
         ),
       });
     } catch (e) {
-      setError(e.message);
+      setError({ message: e.message, stack: e.stack });
       return null;
     }
   };
@@ -129,7 +129,7 @@ function App() {
     try {
       return runModel(params);
     } catch (e) {
-      setError(e.message);
+      setError({ message: e.message, stack: e.stack });
       return null;
     }
   };
@@ -143,9 +143,9 @@ function App() {
       if (!newOutputParams) return;
 
       setOutputParams(newOutputParams);
-      setError("");
+      setError({ message: "", stack: "" });
     } catch (e) {
-      setError(e.message);
+      setError({ message: e.message, stack: e.stack });
     }
   };
 
@@ -350,10 +350,10 @@ function App() {
                   Post mitigation
                 </h2>
 
-                <QueriesVsTimeWithBans 
+                <QueriesVsTimeWithBans
                   timeToExecuteQueries={inputParams.timeToExecuteQueries}
-                  banData={inputParams.bansVsQueries}
-                  timeLostData={inputParams.timeLostToBans}
+                  bansGivenQueries={inputParams.bansVsQueries}
+                  timeLostGivenBans={inputParams.timeLostToBans}
                 />
 
                 <QueriesVsTime
@@ -361,14 +361,18 @@ function App() {
                   onMouseUp={(data) => {
                     // Get all time points at once using the efficient version
                     const timeForQueries = fitQueriesCurve(data);
-                    const baselineCurve = generateCurvePoints(baselineTextFields);
-                    const preMitigationCurve = generateCurvePoints(preMitigationTextFields);
+                    const baselineCurve =
+                      generateCurvePoints(baselineTextFields);
+                    const preMitigationCurve = generateCurvePoints(
+                      preMitigationTextFields
+                    );
 
                     const updatedParams = {
                       ...inputParams,
                       timeToExecuteQueries: timeForQueries,
                       baselineSuccessProbabilityGivenEffort: baselineCurve,
-                      preMitigationSuccessProbabilityGivenEffort: preMitigationCurve,
+                      preMitigationSuccessProbabilityGivenEffort:
+                        preMitigationCurve,
                     };
 
                     setInputParams(updatedParams);
@@ -398,7 +402,7 @@ function App() {
                     setInputParams((prev) => ({
                       ...prev,
                       banCurve: banCurve,
-                      bansVsQueries: bansVsQueries
+                      bansVsQueries: bansVsQueries,
                     }));
                     //   const timeForQueries = Array.from(
                     //     { length: 1000 },
@@ -426,25 +430,50 @@ function App() {
                     //   }
                   }}
                 />
-                <TimeLostToBans 
-
-                onMouseUp={(data) => {
-                  console.log("time lost", data)
-                  const timeLostTobans = getTimeLostGivenBans(data);
-                  setInputParams((prev) => ({
-                    ...prev,
-                    timeLostToBans: timeLostTobans
-                  }));
-                }}
+                <TimeLostToBans
+                  onMouseUp={(data) => {
+                    console.log("time lost", data);
+                    const timeLostTobans = getTimeLostGivenBans(data);
+                    setInputParams((prev) => ({
+                      ...prev,
+                      timeLostToBans: timeLostTobans,
+                    }));
+                  }}
                 />
               </div>
             </div>
 
-            {error && (
+            {error.message && (
               <div
-                style={{ color: "red", textAlign: "center", marginTop: "20px" }}
+                style={{
+                  color: "red",
+                  textAlign: "left",
+                  marginTop: "20px",
+                  padding: "20px",
+                  backgroundColor: "#ffebee",
+                  borderRadius: "4px",
+                  maxWidth: "800px",
+                  margin: "20px auto",
+                }}
               >
-                {error}
+                <div style={{ fontWeight: "bold", marginBottom: "10px" }}>
+                  {error.message}
+                </div>
+                {error.stack && (
+                  <pre
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      fontSize: "12px",
+                      backgroundColor: "#fff",
+                      padding: "10px",
+                      borderRadius: "4px",
+                      overflow: "auto",
+                      maxHeight: "200px",
+                    }}
+                  >
+                    {error.stack}
+                  </pre>
+                )}
               </div>
             )}
 
