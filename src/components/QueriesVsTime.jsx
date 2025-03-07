@@ -72,9 +72,21 @@ const getTangentLine = (points) => {
   // Calculate slope in linear space
   const slope = (q2 - q1) / (t2 - t1);
   
-  // Calculate end point at max time (45 days)
-  const endTime = Math.min(45, t2 + (45 - t2));
-  const endQueries = Math.min(1000, q2 + slope * (endTime - t2));
+  // Calculate how far we can extend the line before hitting either bound
+  let endTime = t2;
+  let endQueries = q2;
+  
+  // Incrementally extend the line until we hit either bound
+  const step = 0.1;
+  while (endTime < 45 && endQueries < 45) {
+    const nextTime = endTime + step;
+    const nextQueries = q2 + slope * (nextTime - t2);
+    
+    if (nextTime > 45 || nextQueries > 45) break;
+    
+    endTime = nextTime;
+    endQueries = nextQueries;
+  }
   
   return [
     { time: t2, queries: q2 },
@@ -88,67 +100,76 @@ let timeInterpolatorCache = {
   interpolator: null
 };
 
-// Get all times for queries 0-1000 efficiently using interpolation
-const getTimeForQueries = (targetQueries, points) => {
-  // Sort points by time
-  const sortedPoints = [...points].sort((a, b) => a.time - b.time);
-  const lastPoint = sortedPoints[sortedPoints.length - 1];
-  
-  // Get tangent line for extrapolation
-  const t2 = lastPoint.time;
-  const t1 = t2 - 5; // Get a point 5 days back
-  
-  const q2 = getQueriesAtTime(t2, points);
-  const q1 = getQueriesAtTime(t1, points);
-  
-  // Calculate slope in linear space
-  const slope = (q2 - q1) / (t2 - t1);
+// Get all times for queries 0-10000 efficiently using interpolation
+const fitQueriesCurve = (() => {
+  const pathCache = { points: null, path: null, length: null };
+  return (points) => {
+    if (!Array.isArray(points)) return Array(10000).fill(0);
 
-  // Function to get time for a single query value
-  const getTimeForQuery = (query) => {
-    // If query is beyond the last point, use tangent line extrapolation
-    if (query > q2) {
-      const queryDiff = query - q2;
-      const timeDiff = queryDiff / slope;
-      return t2 + timeDiff;
-    }
+    // Sort points by time
+    const sortedPoints = [...points].sort((a, b) => a.time - b.time);
+    const lastPoint = sortedPoints[sortedPoints.length - 1];
 
-    // Otherwise use interpolation
-    // Create interpolator if not cached or points changed
-    if (!timeInterpolatorCache.points || timeInterpolatorCache.points !== points) {
-      const numPoints = 1000;
-      const times = [];
-      const queries = [];
+    // Create d3 line generator with monotone interpolation
+    const line = d3.line()
+      .x(d => d.time)
+      .y(d => d.queries)
+      .curve(d3.curveMonotoneX);
 
-      // Generate evenly spaced points for time
-      const minTime = sortedPoints[0].time;
-      const maxTime = lastPoint.time;
-      
-      for (let i = 0; i < numPoints; i++) {
-        const t = minTime + (maxTime - minTime) * (i / (numPoints - 1));
-        times.push(t);
-        queries.push(getQueriesAtTime(t, points));
+    // Create SVG path for interpolation
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", line(points));
+    const pathLength = path.getTotalLength();
+
+    // Get points for tangent line calculation
+    const t2 = lastPoint.time;
+    const t1 = t2 - 5; // Get a point 5 days back
+
+    // Calculate slope for tangent line
+    const q2 = getQueriesAtTime(t2, points);
+    const q1 = getQueriesAtTime(t1, points);
+    const slope = (q2 - q1) / (t2 - t1);
+
+    // Sample 10000 points, using path for interpolation within the curve
+    // and tangent line for extrapolation beyond it
+    const timeForQueries = [];
+    for (let i = 0; i < 10000; i++) {
+      if (i <= q2) {
+        // Use monotone interpolation from the path
+        if (!timeInterpolatorCache.points || timeInterpolatorCache.points !== points) {
+          const numPoints = 1000;
+          const times = [];
+          const queries = [];
+
+          // Generate evenly spaced points for time
+          const minTime = sortedPoints[0].time;
+          const maxTime = lastPoint.time;
+          
+          for (let j = 0; j < numPoints; j++) {
+            const t = minTime + (maxTime - minTime) * (j / (numPoints - 1));
+            times.push(t);
+            queries.push(getQueriesAtTime(t, points));
+          }
+
+          timeInterpolatorCache = {
+            points: points,
+            interpolator: d3.scaleLinear()
+              .domain(queries)
+              .range(times)
+              .clamp(true)
+          };
+        }
+        timeForQueries.push(timeInterpolatorCache.interpolator(i));
+      } else {
+        // Use tangent line for extrapolation
+        const queryDiff = i - q2;
+        const timeDiff = queryDiff / slope;
+        timeForQueries.push(t2 + timeDiff);
       }
-
-      timeInterpolatorCache = {
-        points: points,
-        interpolator: d3.scaleLinear()
-          .domain(queries)
-          .range(times)
-          .clamp(true)
-      };
     }
-
-    return timeInterpolatorCache.interpolator(query);
+    return timeForQueries;
   };
-
-  // Handle array or single value
-  if (typeof targetQueries === 'number') {
-    return getTimeForQuery(targetQueries);
-  }
-
-  return Array.from({length: 1001}, (_, i) => getTimeForQuery(i));
-};
+})();
 
 const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   // State for managing the data
@@ -161,7 +182,7 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   useEffect(() => {
     const initialControlPoints = [
       { time: 0, queries: 0, fixed: true },
-      { time: 22.5, queries: 25 }, // Middle point slightly above the diagonal
+      { time: 22.5, queries: 10 }, // Middle point slightly above the diagonal
       { time: 45, queries: 45 }, // End at max x,y
     ];
     setTimeQueriesData(initialControlPoints);
@@ -399,5 +420,5 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   );
 };
 
-export { getTimeForQueries, getQueriesAtTime };
+export { fitQueriesCurve, getQueriesAtTime };
 export default TimeVsQueries;

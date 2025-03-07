@@ -2,14 +2,17 @@ import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
 import EffortCDF from "./components/EffortCDF.jsx";
 import QueriesVsTime from "./components/QueriesVsTime.jsx";
-import { getTimeForQueries } from "./components/QueriesVsTime.jsx";
+import { fitQueriesCurve } from "./components/QueriesVsTime.jsx";
 import SuccessGivenEffort from "./components/SuccessGivenEffort.jsx";
 import ComparisonSuccessGivenEffort from "./components/ComparisonSuccessGivenEffort.jsx";
 import ExpectedAnnualFatalities from "./components/ExpectedAnnualFatalities.jsx";
 import BansVsQueries from "./components/BansVsQueries.jsx";
-import {getBansForQueries} from "./components/BansVsQueries.jsx";
-import TimeVsQueries2 from "./components/QueriesVsTime2.jsx";
+import { getBansForQueries, getBanCurve } from "./components/BansVsQueries.jsx";
 import { generateCurvePoints } from "./utils/curves.js";
+import TimeLostToBans from "./components/TimeLostToBans.jsx";
+import { getTimeLostGivenBans } from "./components/TimeLostToBans.jsx";
+import QueriesVsTimeWithBans from "./components/QueriesVsTimeWithBans.jsx";
+
 import {
   runModel,
   getPostMitigationSuccessProbabilityGivenEffort,
@@ -44,20 +47,29 @@ function App() {
     expectedFatalitiesPerSuccessfulAttempt: 1000000,
     expectedAnnualAttempts: 1000,
     queriesAttackerExecutesPerMonth: 30,
+    banCurve: [],
+    bansVsQueries: [],
   });
 
   // Initialize data on mount
   useEffect(() => {
     const initialTimeToExecuteQueries = [
       { time: 0, queries: 0, fixed: true },
-      { time: 22.5, queries: 25 }, // Middle point slightly above the diagonal
+      { time: 22.5, queries: 10 }, // Middle point slightly above the diagonal
       { time: 45, queries: 45 }, // End at max x,y
     ];
 
     const initialBansVsQueries = [
       { time: 0, queries: 0, fixed: true },
-      { time: 22.5, queries: 25 },
-      { time: 45, queries: 45 },
+      { time: 20, queries: 19 }, // Middle point slightly above the diagonal
+      { time: 45, queries: 30 }, // End at max x,y
+    ];
+
+    const initialTimeLostToBans = [
+      { time: 0, queries: 0, fixed: true }, // Fixed starting point
+      { time: 5, queries: 1 }, // First control point
+      { time: 15, queries: 3 }, // Middle point
+      { time: 45, queries: 3.2 }, // End point
     ];
 
     // Calculate array size to reach maxTimeMonths
@@ -69,12 +81,10 @@ function App() {
       preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(
         preMitigationTextFields
       ),
-      timeToExecuteQueries: Array.from({ length: arraySize }, (_, i) =>
-        getTimeForQueries(i, initialTimeToExecuteQueries)
-      ),
-      bansVsQueries: Array.from({ length: arraySize }, (_, i) =>
-        getBansForQueries(i, initialBansVsQueries)
-      ),
+      timeToExecuteQueries: fitQueriesCurve(initialTimeToExecuteQueries),
+      banCurve: getBanCurve(initialBansVsQueries),
+      bansVsQueries: getBansForQueries(initialBansVsQueries),
+      timeLostToBans: getTimeLostGivenBans(initialTimeLostToBans),
       expectedFatalitiesPerSuccessfulAttempt: 1000000,
       expectedAnnualAttempts: 1000,
       queriesAttackerExecutesPerMonth: 30,
@@ -340,25 +350,25 @@ function App() {
                   Post mitigation
                 </h2>
 
+                <QueriesVsTimeWithBans 
+                  timeToExecuteQueries={inputParams.timeToExecuteQueries}
+                  banData={inputParams.bansVsQueries}
+                  timeLostData={inputParams.timeLostToBans}
+                />
+
                 <QueriesVsTime
                   queriesPerMonth={inputParams.queriesAttackerExecutesPerMonth}
                   onMouseUp={(data) => {
-                    const timeForQueries = Array.from(
-                      { length: 1000 },
-                      (_, i) => getTimeForQueries(i, data)
-                    );
-                    const baselineCurve =
-                      generateCurvePoints(baselineTextFields);
-                    const preMitigationCurve = generateCurvePoints(
-                      preMitigationTextFields
-                    );
+                    // Get all time points at once using the efficient version
+                    const timeForQueries = fitQueriesCurve(data);
+                    const baselineCurve = generateCurvePoints(baselineTextFields);
+                    const preMitigationCurve = generateCurvePoints(preMitigationTextFields);
 
                     const updatedParams = {
                       ...inputParams,
                       timeToExecuteQueries: timeForQueries,
                       baselineSuccessProbabilityGivenEffort: baselineCurve,
-                      preMitigationSuccessProbabilityGivenEffort:
-                        preMitigationCurve,
+                      preMitigationSuccessProbabilityGivenEffort: preMitigationCurve,
                     };
 
                     setInputParams(updatedParams);
@@ -378,36 +388,55 @@ function App() {
                   title="Success Probability Comparison"
                   submittedValues={preMitigationTextFields}
                 />
-                <TimeVsQueries2
+                <BansVsQueries
                   queriesPerMonth={inputParams.queriesAttackerExecutesPerMonth}
                   onMouseUp={(data) => {
-                  //   const timeForQueries = Array.from(
-                  //     { length: 1000 },
-                  //     (_, i) => getTimeForQueries(i, data)
-                  //   );
-                  //   const baselineCurve =
-                  //     generateCurvePoints(baselineTextFields);
-                  //   const preMitigationCurve = generateCurvePoints(
-                  //     preMitigationTextFields
-                  //   );
+                    // get the full ban curve
+                    const banCurve = getBanCurve(data);
+                    const bansVsQueries = getBansForQueries(data);
+                    console.log("ban vs queries", bansVsQueries);
+                    setInputParams((prev) => ({
+                      ...prev,
+                      banCurve: banCurve,
+                      bansVsQueries: bansVsQueries
+                    }));
+                    //   const timeForQueries = Array.from(
+                    //     { length: 1000 },
+                    //     (_, i) => fitCurve(i, data)
+                    //   );
+                    //   const baselineCurve =
+                    //     generateCurvePoints(baselineTextFields);
+                    //   const preMitigationCurve = generateCurvePoints(
+                    //     preMitigationTextFields
+                    //   );
 
-                  //   const updatedParams = {
-                  //     ...inputParams,
-                  //     timeToExecuteQueries: timeForQueries,
-                  //     baselineSuccessProbabilityGivenEffort: baselineCurve,
-                  //     preMitigationSuccessProbabilityGivenEffort:
-                  //       preMitigationCurve,
-                  //   };
+                    //   const updatedParams = {
+                    //     ...inputParams,
+                    //     timeToExecuteQueries: timeForQueries,
+                    //     baselineSuccessProbabilityGivenEffort: baselineCurve,
+                    //     preMitigationSuccessProbabilityGivenEffort:
+                    //       preMitigationCurve,
+                    //   };
 
-                  //   setInputParams(updatedParams);
-                  //   const newOutputParams =
-                  //     runModelWithErrorHandling(updatedParams);
-                  //   if (newOutputParams) {
-                  //     setOutputParams(newOutputParams);
-                  //   }
+                    //   setInputParams(updatedParams);
+                    //   const newOutputParams =
+                    //     runModelWithErrorHandling(updatedParams);
+                    //   if (newOutputParams) {
+                    //     setOutputParams(newOutputParams);
+                    //   }
                   }}
                 />
+                <TimeLostToBans 
 
+                onMouseUp={(data) => {
+                  console.log("time lost", data)
+                  const timeLostTobans = getTimeLostGivenBans(data);
+                  setInputParams((prev) => ({
+                    ...prev,
+                    timeLostToBans: timeLostTobans
+                  }));
+                }}
+                />
               </div>
             </div>
 

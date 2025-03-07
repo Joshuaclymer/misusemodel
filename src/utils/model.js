@@ -1,4 +1,4 @@
-import { getTimeForQueries } from "../components/QueriesVsTime.jsx";
+import { fitQueriesCurve } from "../components/QueriesVsTime.jsx";
 import { maxTimeMonths } from "../App.js";
 
 // Calculate expected annual fatalities based on success probability and other factors
@@ -39,16 +39,18 @@ const arrayToFunction = (array, inputKey, outputKey, inputValue) => {
 };
 
 export const getTimeToExecuteQueries = (points, startQueries, endQueries) => {
-  const startTime = getTimeForQueries(startQueries, points);
-  const endTime = getTimeForQueries(endQueries, points);
+  const startTime = fitQueriesCurve(startQueries, points);
+  const endTime = fitQueriesCurve(endQueries, points);
   return endTime - startTime;
 };
 
 export const getPostMitigationSuccessProbabilityGivenEffort = (
   queriesAttackerExecutesPerMonth,
   timeToExecuteQueries,
-  preMitigationSuccessProbability
+  preMitigationSuccessProbability,
+  bansVsQueries,
 ) => {
+  console.log("0", bansVsQueries);
   console.log("A,", timeToExecuteQueries);
   console.log("B,", queriesAttackerExecutesPerMonth);
   console.log("C,", preMitigationSuccessProbability);
@@ -67,9 +69,9 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
       timeIfUnmitigated
     );
 
-    if (totalTime < 60) {
-      console.log(`Debug early point:\n  queries=${queries}\n  timeBetweenQueries=${timeBetweenQueries}\n  timeIfUnmitigated=${timeIfUnmitigated}\n  timeSpentJailbreaking=${timeSpentJailbreaking}\n  totalTime=${totalTime}\n  successProbability=${successProbability}`);
-    }
+    // if (totalTime < 60) {
+    //   console.log(`Debug early point:\n  queries=${queries}\n  timeBetweenQueries=${timeBetweenQueries}\n  timeIfUnmitigated=${timeIfUnmitigated}\n  timeSpentJailbreaking=${timeSpentJailbreaking}\n  totalTime=${totalTime}\n  successProbability=${successProbability}`);
+    // }
 
     if (totalTime < 0.1) continue;
     else points.push({
@@ -99,7 +101,8 @@ export const runModel = (params) => {
     getPostMitigationSuccessProbabilityGivenEffort(
       params.queriesAttackerExecutesPerMonth,
       params.timeToExecuteQueries,
-      params.preMitigationSuccessProbabilityGivenEffort
+      params.preMitigationSuccessProbabilityGivenEffort,
+      params.bansVsQueries
     );
   console.log(
     "RESULT: postMitigationSuccessProbabilityGivenEffort",

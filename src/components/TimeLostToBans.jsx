@@ -67,19 +67,17 @@ const getTangentLineWithCache = (points, pathCache) => {
   // Calculate slope in linear space
   const slope = (q2 - q1) / (t2 - t1);
 
-  // Find where the tangent line intersects y = 45 or x = 45
-  const timeToYLimit = (45 - q2) / slope + t2;
-  const queryAtXLimit = q2 + slope * (45 - t2);
-  
-  let endTime, endBans;
-  if (timeToYLimit <= 45 && slope > 0) {
-    // Line hits y = 45 first
-    endTime = timeToYLimit;
-    endBans = 45;
-  } else {
-    // Line hits x = 45 first (or slopes down)
-    endTime = 45;
-    endBans = Math.min(45, queryAtXLimit);
+  // Find where the line intersects y=4 (if it does)
+  const maxY = 4;
+  let endTime = 45;
+  let endBans = q2 + slope * (endTime - t2);
+
+  // If line goes above maxY, find intersection point
+  if (endBans > maxY) {
+    // Solve: maxY = q2 + slope * (t - t2)
+    // t = (maxY - q2)/slope + t2
+    endTime = (maxY - q2)/slope + t2;
+    endBans = maxY;
   }
 
   return [
@@ -156,54 +154,27 @@ const fitBanCurveWithCache = (
   return Array.from({ length: 1001 }, (_, i) => getTimeForQuery(i));
 };
 
-const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
+const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
   // Refs for caching and DOM elements
   const pathCache = useRef({ points: null, path: null, length: null });
   const timeInterpolatorCache = useRef({ points: null, interpolator: null });
   const svgRef = useRef(null);
   // State for managing the data
   const [queryTimeData, setTimeBansData] = useState([]);
-  const [interpolatedData, setInterpolatedData] = useState([]);
-  const [interpolatedTangent, setInterpolatedTangent] = useState([]);
   const [draggedPointIndex, setDraggedPointIndex] = useState(null);
 
   // Initialize data
   useEffect(() => {
     const initialControlPoints = [
-      { time: 0, queries: 0, fixed: true },
-      { time: 20, queries: 19 }, // Middle point slightly above the diagonal
-      { time: 45, queries: 30 }, // End at max x,y
+      { time: 0, queries: 0, fixed: true }, // Fixed starting point
+      { time: 5, queries: 1 }, // First control point
+      { time: 15, queries: 3 }, // Middle point
+      { time: 45, queries: 3.2 }, // End point
     ];
     setTimeBansData(initialControlPoints);
   }, []);
 
-  // Generate interpolated points whenever queryTimeData changes
-  useEffect(() => {
-    if (queryTimeData.length < 2) return;
 
-    // Generate 100 points for smooth curve
-    const points = [];
-    const mintime = queryTimeData[0].time;
-    const maxtime = queryTimeData[queryTimeData.length - 1].time;
-
-    for (let i = 0; i <= 100; i++) {
-      const t = i / 100;
-      const time = mintime * (1 - t) + maxtime * t;
-      points.push({
-        time,
-        queries: getBansAtTimeWithCache(time, queryTimeData, pathCache),
-      });
-    }
-
-    setInterpolatedData(points);
-
-    setInterpolatedTangent(getTangentLineWithCache(queryTimeData, pathCache));
-    
-    // Notify parent of changes
-    if (onChange) {
-      onChange(queryTimeData);
-    }
-  }, [queryTimeData, onChange]);
 
   // Handle drag interactions
   useEffect(() => {
@@ -223,13 +194,14 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
       const mouseY = event.clientY - svgRect.top - margin.top;
 
       const xScale = d3.scaleLinear().domain([0, 45]).range([0, width]);
-      const maxBans = 45 * (queriesPerMonth / 30); // Convert days to months for query calculation
+      const maxBans = 4; // Fixed maximum number of bans
       const yScale = d3
         .scaleLinear()
         .domain([0, maxBans])
         .range([height, 0]);
 
-      const newtime = Math.max(0, Math.min(45, xScale.invert(mouseX)));
+      // If it's the first point, keep x at 0, otherwise constrain between 0 and 45
+      const newtime = draggedPointIndex === 0 ? 0 : Math.max(0, Math.min(45, xScale.invert(mouseX)));
       const newqueries = Math.max(
         0,
         Math.min(maxBans, yScale.invert(mouseY))
@@ -267,7 +239,7 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
           constrainedTime = Math.min(constrainedTime, Math.exp(maxLogTime));
         }
 
-        // Constrain queries to be between prev and next points
+        // Constrain points to be monotonically increasing
         let constrainedBans = roundedqueries;
         if (prevPoint) {
           constrainedBans = Math.max(constrainedBans, prevPoint.queries);
@@ -324,7 +296,7 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
       }}
     >
       <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-        Bans Vs Queries
+        Time Cost of Bans
       </h3>
       <LineChart
         className="query-queries-chart"
@@ -342,32 +314,23 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
           ticks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45]}
           tickFormatter={(value) => value}
           label={{
-            value: "Number of queries",
+            value: "Number of bans",
             position: "bottom",
             offset: 20,
           }}
         />
         <YAxis
-          domain={[0, 45 * (queriesPerMonth / 30)]}
+          domain={[0, 4]}
+          tickFormatter={(value) => Number(value).toPrecision(2)}
           label={{
-            value: "Average number of bans",
+            value: "Total Time Cost of All Bans",
             angle: -90,
             position: "center",
             dx: -35,
           }}
         />
 
-        {/* Tangent line */}
-        <Line
-          type="linear"
-          data={getTangentLine(queryTimeData)}
-          dataKey="queries"
-          stroke="#3498db"
-          strokeWidth={2}
-          // Solid line
-          dot={false}
-        />
-        {/* Original curve */}
+        {/* Main curve */}
         <Line
           type="monotoneX"
           dataKey="queries"
@@ -389,30 +352,20 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
                 }}
                 onMouseDown={(e) => !payload.fixed && handleDragStart(e, index)}
               />
-            );
+            );          
           }}
         />
-        {/* Interpolated verification curve
+
+        {/* Extension line */}
         <Line
-          data={interpolatedData}
           type="linear"
           dataKey="queries"
-          stroke="#ff7f50"
-          name="Interpolated"
-          strokeWidth={1}
+          stroke="#3498db"
+          strokeWidth={2}
           dot={false}
+          data={getTangentLineWithCache(queryTimeData, { current: pathCache })}
         />
-        
-        {/* Interpolated tangent line */}
-        {/* <Line
-          data={interpolatedTangent}
-          type="linear"
-          dataKey="queries"
-          stroke="#ff7f50"
-          strokeWidth={1}
-          // Solid line
-          dot={false}
-        /> */}
+
       </LineChart>
     </div>
   );
@@ -451,8 +404,13 @@ const getBansForQueriesWithCache = (queryValue, points, pathCache) => {
   return p1.queries + slope * dt;
 };
 
-// External versions for use outside the component
-const getBansForQueries = (() => {
+// // External versions for use outside the component
+// const getTimeLostGivenBans = (() => {
+//   const pathCache = { points: null, path: null, length: null };
+//   return (queryValue, points) => getBansForQueriesWithCache(queryValue, points, { current: pathCache });
+// })();
+
+const getTimeLostGivenBans = (() => {
   const pathCache = { points: null, path: null, length: null };
   return (points) => {
     if (!Array.isArray(points)) return [];
@@ -460,17 +418,6 @@ const getBansForQueries = (() => {
     // Sort points by time
     const sortedPoints = [...points].sort((a, b) => a.time - b.time);
     const lastPoint = sortedPoints[sortedPoints.length - 1];
-
-    // Calculate tangent line for extrapolation using last two points
-    const t2 = lastPoint.time;
-    const t1 = t2 - 5; // Get a point 5 days back
-
-    // Get points for tangent calculation
-    const q2 = getBansAtTimeWithCache(t2, points, { current: pathCache });
-    const q1 = getBansAtTimeWithCache(t1, points, { current: pathCache });
-
-    // Calculate slope for extrapolation
-    const slope = (q2 - q1) / (t2 - t1);
 
     // Create d3 line generator with monotone interpolation
     const line = d3.line()
@@ -483,12 +430,21 @@ const getBansForQueries = (() => {
     path.setAttribute("d", line(points));
     const pathLength = path.getTotalLength();
 
+    // Get points for tangent line calculation
+    const t2 = lastPoint.time;
+    const t1 = t2 - 5; // Get a point 5 days back
+
+    // Calculate slope for tangent line
+    const q2 = getBansAtTimeWithCache(t2, points, { current: pathCache });
+    const q1 = getBansAtTimeWithCache(t1, points, { current: pathCache });
+    const slope = (q2 - q1) / (t2 - t1);
+
     // Sample 1000 points, using path for interpolation within the curve
     // and tangent line for extrapolation beyond it
-    const bans = [];
+    const timeLost = [];
     for (let i = 0; i < 10000; i++) {
       if (i <= t2) {
-        // Use path interpolation for points within the curve
+        // Use monotone interpolation from the path
         let start = 0;
         let end = pathLength;
         let found = false;
@@ -498,7 +454,7 @@ const getBansForQueries = (() => {
           const point = path.getPointAtLength(mid);
           
           if (Math.abs(point.x - i) < 0.1) {
-            bans.push(point.y);
+            timeLost.push(point.y);
             found = true;
             break;
           }
@@ -512,26 +468,26 @@ const getBansForQueries = (() => {
         
         if (!found) {
           const point = path.getPointAtLength((start + end) / 2);
-          bans.push(point.y);
+          timeLost.push(point.y);
         }
       } else {
-        // Use tangent line extrapolation for points beyond the curve
+        // Use tangent line for extrapolation
         const extrapolatedValue = q2 + slope * (i - t2);
-
-        bans.push(extrapolatedValue); // Clamp between 0 and 45
+        timeLost.push(extrapolatedValue);
       }
     }
-    return bans;
+    return timeLost;
   };
 })();
 
 // Create a version that returns an array of bans for queries 0-45
-const getBanCurve = (() => {
+const getTimeLostToBansCurve = (() => {
   return (points) => {
+    const numPoints = 1000;
     const bans = [];
-    for (let i = 0; i < 1800; i++) {
-      const queryValue = i
-      bans.push(getBansForQueries(queryValue, points));
+    for (let i = 0; i < numPoints; i++) {
+      const queryValue = (45 * i) / (numPoints - 1);
+      bans.push(getTimeLostGivenBans(queryValue, points));
     }
     return bans;
   };
@@ -543,6 +499,6 @@ const getTangentLine = (() => {
   return (points) => getTangentLineWithCache(points, { current: pathCache });
 })();
 
-export { getBansForQueries, getBanCurve};
+export { getTimeLostGivenBans, getTimeLostToBansCurve, getTangentLine };
 
-export default BansVsQueries;
+export default TimeLostToBans;
