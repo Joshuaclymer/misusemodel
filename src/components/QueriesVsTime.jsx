@@ -172,9 +172,9 @@ const fitQueriesCurve = (() => {
 })();
 
 const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
-  const [plotWidth, setPlotWidth] = useState(Math.min(350, window.innerWidth - 40));
-  const plotMargin = { top: 40, right: 40, left: 0, bottom: 40 };
-  const plotHeight = 350;
+  const [plotWidth, setPlotWidth] = useState(Math.min(300, window.innerWidth - 40));
+  const plotMargin = { top: 10, right: 40, left: 0, bottom: 30 };
+  const plotHeight = 260;
   const [queryTimeData, setTimeQueriesData] = useState([]);
   const [interpolatedData, setInterpolatedData] = useState([]);
   const [interpolatedTangent, setInterpolatedTangent] = useState([]);
@@ -324,6 +324,9 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   };
 
   return (
+      <div>
+        <h4 style={{ fontSize: 14, fontWeight: 500 }}>Queries executed vs effort</h4>
+
       <LineChart
         className="query-queries-chart"
         width={plotWidth}
@@ -338,10 +341,10 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
           type="number"
           scale="linear"
           domain={[0, 45]}
-          ticks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45]}
+          ticks={[0, 15, 30, 45]}
           tickFormatter={(value) => value}
           label={{
-            value: "Time (months)",
+            value: "Time spent jailbreaking (days)",
             position: "bottom",
             offset: 0,
             style: { fontSize: 12 }
@@ -351,10 +354,10 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
         <YAxis
           domain={[0, 45]}
           label={{
-            value: "Queries",
+            value: "Queries executed",
             angle: -90,
             position: "center",
-            // dx: -35,
+            dx: -10,
             style: { fontSize: 12 }
           }}
           tick={{ fontSize: 12 }}
@@ -419,6 +422,7 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
           dot={false}
         /> */}
       </LineChart>
+      </div>
   );
 };
 

@@ -11,6 +11,7 @@ const PurpleBox = ({ children }) => {
         flexDirection: "column",
         justifyContent: "center",
         alignItems: "center",
+        padding: "20px",
         flex: 1,
       }}
     >

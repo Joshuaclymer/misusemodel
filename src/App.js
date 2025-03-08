@@ -62,9 +62,9 @@ const initialBansVsQueries = [
 
 const initialTimeLostToBans = [
   { time: 0, queries: 0, fixed: true }, // Fixed starting point
-  { time: 5, queries: 1 }, // First control point
-  { time: 15, queries: 3 }, // Middle point
-  { time: 45, queries: 3.2 }, // End point
+  { time: 5, queries: 4 }, // First control point
+  { time: 15, queries: 12 }, // Middle point
+  { time: 45, queries: 16 }, // End point
 ];
 
 const initialEffortPoints = {
@@ -194,7 +194,7 @@ function App() {
                         margin: "0px",
                         marginTop: "20px",
                         marginRight: "20px",
-                        color: "#547187",
+                        color: "#113A58",
                       }}
                     >
                       Evidence from expert surveys
@@ -288,7 +288,7 @@ function App() {
                       <h3
                         style={{
                           margin: 0,
-                          color: "#AE7926",
+                          color: "#765117",
                         }}
                       >
                         Evidence from capability evaluations + experts
@@ -343,10 +343,10 @@ function App() {
                         display: "grid",
                         gridTemplateColumns: "1fr 1fr",
                         gridTemplateRows: "1fr 1fr",
-                        gap: "40px",
+                        gap: "0px",
                         width: "100%",
                         height: "100%",
-                        padding: "40px",
+                        padding: "0px",
                       }}
                     >
                       <Card>

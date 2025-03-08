@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import * as d3 from "d3";
 
 // Internal version with cache
@@ -172,7 +172,7 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
     const initialControlPoints = [
       { time: 0, queries: 0, fixed: true },
       { time: 20, queries: 19 }, // Middle point slightly above the diagonal
-      { time: 45, queries: 30 }, // End at max x,y
+      { time: 45, queries: 45 }, // End at max x,y
     ];
     setTimeBansData(initialControlPoints);
   }, []);
@@ -215,24 +215,23 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
       if (!svgElement) return;
 
       const svgRect = svgElement.getBoundingClientRect();
-      const margin = { left: 40, right: 30, top: 5, bottom: 20 };
-      const width = 300 - margin.left - margin.right;
-      const height = 250 - margin.top - margin.bottom;
+      const margin = { top: 10, right: 40, left: 0, bottom: 30 };
+      const width = plotWidth - margin.left - margin.right;
+      const height = plotHeight - margin.top - margin.bottom;
 
       const mouseX = event.clientX - svgRect.left - margin.left;
       const mouseY = event.clientY - svgRect.top - margin.top;
 
       const xScale = d3.scaleLinear().domain([0, 45]).range([0, width]);
-      const maxBans = 45 * (queriesPerMonth / 30); // Convert days to months for query calculation
       const yScale = d3
         .scaleLinear()
-        .domain([0, maxBans])
+        .domain([0, 45])
         .range([height, 0]);
 
       const newtime = Math.max(0, Math.min(45, xScale.invert(mouseX)));
       const newqueries = Math.max(
         0,
-        Math.min(maxBans, yScale.invert(mouseY))
+        Math.min(45, yScale.invert(mouseY))
       );
 
       // Round to 2 decimal places to avoid floating point issues
@@ -313,54 +312,62 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
     setDraggedPointIndex(index);
   };
 
+  const [plotWidth, setPlotWidth] = useState(Math.min(300, window.innerWidth - 40));
+  const plotHeight = 260;
+  const plotMargin = { top: 10, right: 40, left: 0, bottom: 30 };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPlotWidth(Math.min(300, window.innerWidth - 40));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
-    <div
-      ref={svgRef}
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-        Bans Vs Queries
-      </h3>
+    <div ref={svgRef}>
+      <h4 style={{ fontSize: 14, fontWeight: 500 }}>
+        Bans vs Queries Executed
+      </h4>
       <LineChart
         className="query-queries-chart"
-        width={300}
-        height={250}
-        margin={{ top: 5, right: 30, left: 40, bottom: 20 }}
+        width={plotWidth}
+        height={plotHeight}
+        margin={plotMargin}
         data={queryTimeData}
       >
-        <CartesianGrid strokeDasharray="3 3" />
+        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
         <XAxis
           dataKey="time"
           type="number"
           scale="linear"
           domain={[0, 45]}
-          ticks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45]}
+          ticks={[0, 15, 30, 45]}
           tickFormatter={(value) => value}
           label={{
-            value: "Number of queries",
+            value: "Number of Queries Executed",
             position: "bottom",
-            offset: 20,
+            offset: 0,
+            style: { fontSize: 12 }
           }}
+          tick={{ fontSize: 12 }}
         />
         <YAxis
-          domain={[0, 45 * (queriesPerMonth / 30)]}
+          domain={[0, 45]}
+          tick={{ fontSize: 12 }}
           label={{
-            value: "Average number of bans",
+            value: "Number of bans",
             angle: -90,
             position: "center",
-            dx: -35,
+            dx: -10,
+            style: { fontSize: 12 }
           }}
         />
 
         {/* Tangent line */}
         <Line
           type="linear"
-          data={getTangentLine(queryTimeData)}
+          data={getTangentLineWithCache(queryTimeData, pathCache)}
           dataKey="queries"
           stroke="#3498db"
           strokeWidth={2}

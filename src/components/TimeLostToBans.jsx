@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import * as d3 from "d3";
 
 // Internal version with cache
@@ -67,8 +67,8 @@ const getTangentLineWithCache = (points, pathCache) => {
   // Calculate slope in linear space
   const slope = (q2 - q1) / (t2 - t1);
 
-  // Find where the line intersects y=4 (if it does)
-  const maxY = 4;
+  // Find where the line intersects y=16 (if it does)
+  const maxY = 16;
   let endTime = 45;
   let endBans = q2 + slope * (endTime - t2);
 
@@ -167,14 +167,26 @@ const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
   useEffect(() => {
     const initialControlPoints = [
       { time: 0, queries: 0, fixed: true }, // Fixed starting point
-      { time: 5, queries: 1 }, // First control point
-      { time: 15, queries: 3 }, // Middle point
-      { time: 45, queries: 3.2 }, // End point
+      { time: 5, queries: 4 }, // First control point
+      { time: 15, queries: 12 }, // Middle point
+      { time: 45, queries: 16 }, // End point
     ];
     setTimeBansData(initialControlPoints);
   }, []);
 
 
+
+  const [plotWidth, setPlotWidth] = useState(Math.min(300, window.innerWidth - 40));
+  const plotHeight = 260;
+  const plotMargin = { top: 10, right: 40, left: 0, bottom: 30 };
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPlotWidth(Math.min(300, window.innerWidth - 40));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Handle drag interactions
   useEffect(() => {
@@ -186,15 +198,15 @@ const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
       if (!svgElement) return;
 
       const svgRect = svgElement.getBoundingClientRect();
-      const margin = { left: 40, right: 30, top: 5, bottom: 20 };
-      const width = 300 - margin.left - margin.right;
-      const height = 250 - margin.top - margin.bottom;
+      const margin = plotMargin;
+      const width = plotWidth - margin.left - margin.right;
+      const height = plotHeight - margin.top - margin.bottom;
 
       const mouseX = event.clientX - svgRect.left - margin.left;
       const mouseY = event.clientY - svgRect.top - margin.top;
 
       const xScale = d3.scaleLinear().domain([0, 45]).range([0, width]);
-      const maxBans = 4; // Fixed maximum number of bans
+      const maxBans = 16; // Fixed maximum number of bans
       const yScale = d3
         .scaleLinear()
         .domain([0, maxBans])
@@ -286,48 +298,42 @@ const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
   };
 
   return (
-    <div
-      ref={svgRef}
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-        Time Cost of Bans
-      </h3>
+    <div ref={svgRef}>
+      <h4 style={{ fontSize: 14, fontWeight: 500 }}>
+        Time lost to bans
+      </h4>
       <LineChart
         className="query-queries-chart"
-        width={300}
-        height={250}
-        margin={{ top: 5, right: 30, left: 40, bottom: 20 }}
+        width={plotWidth}
+        height={plotHeight}
+        margin={plotMargin}
         data={queryTimeData}
       >
-        <CartesianGrid strokeDasharray="3 3" />
+        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
         <XAxis
           dataKey="time"
           type="number"
-          scale="linear"
           domain={[0, 45]}
-          ticks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45]}
-          tickFormatter={(value) => value}
+          ticks={[0, 15, 30, 45]}
           label={{
-            value: "Number of bans",
+            value: "Time spent jailbreaking (days)",
             position: "bottom",
-            offset: 20,
+            offset: 0,
+            style: { fontSize: 12 }
           }}
+          tick={{ fontSize: 12 }}
         />
         <YAxis
-          domain={[0, 4]}
-          tickFormatter={(value) => Number(value).toPrecision(2)}
+          domain={[0, 16]}
+          ticks={[0, 4, 8, 12, 16]}
           label={{
-            value: "Total Time Cost of All Bans",
+            value: "Time lost to bans (days)",
             angle: -90,
             position: "center",
-            dx: -35,
+            dx: -10,
+            style: { fontSize: 12 }
           }}
+          tick={{ fontSize: 12 }}
         />
 
         {/* Main curve */}
@@ -361,6 +367,7 @@ const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
           type="linear"
           dataKey="queries"
           stroke="#3498db"
+          // strokeDasharray="5 5"
           strokeWidth={2}
           dot={false}
           data={getTangentLineWithCache(queryTimeData, { current: pathCache })}
