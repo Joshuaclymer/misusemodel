@@ -153,7 +153,7 @@ function App() {
     <div className="App">
       <div>
         <h1 style={{ textAlign: "center", margin: "40px" }}>
-          Annual Novice-Made Bioweapon Fatalities Model
+          AI biological misuse risk model
         </h1>
         <form
           onSubmit={(e) => {
@@ -309,22 +309,23 @@ function App() {
                         onChange={(params) => {
                           setPreMitigationTextFields(params);
                           // refreshPage();
-                      }}
-                      data={
-                        inputParams.preMitigationSuccessProbabilityGivenEffort
-                      }
-                      color="#e74c3c"
-                      initialValues={preMitigationTextFields}
-                      baselineValues={baselineTextFields}
-                      preMitigationValues={preMitigationTextFields}
-                    />
-                    <ExpectedAnnualFatalities
-                      titleWord="Pre-Mitigation"
-                      titleColor="#e74c3c"
-                      expectedAnnualFatalities={
-                        getOutputParams().preMitigationExpectedAnnualFatalities
-                      }
-                    />
+                        }}
+                        data={
+                          inputParams.preMitigationSuccessProbabilityGivenEffort
+                        }
+                        color="#e74c3c"
+                        initialValues={preMitigationTextFields}
+                        baselineValues={baselineTextFields}
+                        preMitigationValues={preMitigationTextFields}
+                      />
+                      <ExpectedAnnualFatalities
+                        titleWord="Pre-Mitigation"
+                        titleColor="#e74c3c"
+                        expectedAnnualFatalities={
+                          getOutputParams()
+                            .preMitigationExpectedAnnualFatalities
+                        }
+                      />
                     </div>
                   </OrangeBox>
                   <PurpleBox>
@@ -432,26 +433,51 @@ function App() {
                   </PurpleBox>
                 </div>
                 <div>
+                  <div style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "100%",
+                    gap: "30px",
+                  }}>
+                    <h2
+                      style={{
+                        marginTop: "20px",
+                        marginBottom: "40px",
+                        width: "100%",
+                        maxWidth: "500px",
+                        textAlign: "center",
+                      }}
+                    >
+                     Predictions 
+                    </h2>
+                  </div>
                   <div
                     style={{
                       display: "flex",
-                      flexDirection: "row",
+                      flexDirection: width < 1200 ? "column" : "row",
                       justifyContent: "center",
+                      alignItems: width < 1200 ? "center" : "flex-start",
                       width: "100%",
+                      marginBottom: "100px",
                     }}
                   >
-                    <div style={{ 
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: "30px",
-                      width: "100%",
-                    }}>
-
-                      
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: width < 1200 ? "center" : "flex-end",
+                        justifyContent: "space-between",
+                        marginRight: width < 1200 ? "0px" : "50px",
+                        gap: "30px",
+                        width: "100%",
+                      }}
+                    >
                       <ExpectedAnnualFatalities
                         titleWord="Baseline"
                         titleColor="#2ecc71"
+                        width = {width < 1200 ? "100%" : "600px"}
                         expectedAnnualFatalities={
                           getOutputParams().baselineExpectedAnnualFatalities
                         }
@@ -459,126 +485,63 @@ function App() {
                       <ExpectedAnnualFatalities
                         titleWord="Pre-Mitigation"
                         titleColor="#e74c3c"
+                        width = {width < 1200 ? "100%" : "600px"}
                         expectedAnnualFatalities={
-                          getOutputParams().preMitigationExpectedAnnualFatalities
+                          getOutputParams()
+                            .preMitigationExpectedAnnualFatalities
                         }
                       />
                       <ExpectedAnnualFatalities
                         titleWord="Post-Mitigation"
                         titleColor="#3498DB"
+                        width = {width < 1200 ? "100%" : "600px"}
                         expectedAnnualFatalities={
-                          getOutputParams().postMitigationExpectedAnnualFatalities
+                          getOutputParams()
+                            .postMitigationExpectedAnnualFatalities
                         }
                         baseline={
                           getOutputParams().baselineExpectedAnnualFatalities
                         }
                       />
                     </div>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        marginLeft: width < 1200 ? "0px" : "50px",
+                        alignItems: width < 1200 ? "center" : "flex-start",
+                        justifyContent: "center",
+                        gap: "30px",
+                        width: "100%",
+                      }}
+                    >
+                    <Card>
+                      <ComparisonSuccessGivenEffort
+                        data={
+                          getOutputParams()
+                            .postMitigationSuccessProbabilityGivenEffort
+                        }
+                        baselineData={
+                          inputParams.baselineSuccessProbabilityGivenEffort
+                        }
+                        readOnly={true}
+                        title="Success Probability Comparison"
+                        submittedValues={preMitigationTextFields}
+                      />
+                    </Card>
+                    </div>
                   </div>
-
-                  <h2
-                    style={{
-                      margin: "0 0 20px 0",
-                      width: "100%",
-                      maxWidth: "500px",
-                      textAlign: "center",
-                    }}
-                  >
-                    Post-Mitigation Deployment
-                  </h2>
                 </div>
-                <div
-                  style={{
-                    width: "400px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "30px",
-                  }}
-                >
-                  <h2
-                    style={{
-                      margin: "0 0 20px 0",
-                      width: "100%",
-                      maxWidth: "500px",
-                      textAlign: "center",
-                    }}
-                  >
-                    Pre-Mitigation Deployment
-                  </h2>
-
-                  <div style={{ textAlign: "center", width: "100%" }}></div>
-                </div>
-                Query Time Plot
-                <div
-                  style={{
-                    width: "400px",
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    gap: "30px",
-                  }}
-                >
-                  <h2
-                    style={{
-                      margin: "0 0 20px 0",
-                      width: "100%",
-                      maxWidth: "500px",
-                      textAlign: "center",
-                    }}
-                  >
-                    Post mitigation
-                  </h2>
-
-                  <ComparisonSuccessGivenEffort
-                    data={
-                      getOutputParams()
-                        .postMitigationSuccessProbabilityGivenEffort
-                    }
-                    baselineData={
-                      inputParams.baselineSuccessProbabilityGivenEffort
-                    }
-                    readOnly={true}
-                    title="Success Probability Comparison"
-                    submittedValues={preMitigationTextFields}
-                  />
-                  <ExpectedAnnualFatalities
-                    expectedAnnualFatalities={
-                      getOutputParams().postMitigationExpectedAnnualFatalities
-                    }
-                  />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "center",
-                  marginTop: "40px",
-                  marginBottom: "20px",
-                }}
-              >
-                <button
-                  onClick={() => refreshPage()}
-                  type="button"
-                  style={{
-                    padding: "12px 24px",
-                    backgroundColor: "#4CAF50",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "4px",
-                    cursor: "pointer",
-                    width: "200px",
-                    fontSize: "16px",
-                  }}
-                >
-                  Refresh
-                </button>
               </div>
             </div>
           </div>
         </form>
       </div>
+                {/* Footer */}
+                <div style={{width: "100%", textAlign: "center", paddingTop: "40px", paddingBottom: "40px", backgroundColor: "#FBFBFB"}}>
+                  <p>This site was created by Joshua Clymer for the research paper "A Safety Case Sketch for Evaluating Safeguards Against AI-Enabled Bioterrorism." </p>
+                </div>
     </div>
   );
 }

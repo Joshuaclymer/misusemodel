@@ -46,6 +46,15 @@ const generateData = (parameters) => {
 };
 
 const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, title = 'Success Probability Parameters', submittedValues }) => {
+  const [width, setWidth] = useState(Math.min(600, window.innerWidth - 40));
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWidth(Math.min(600, window.innerWidth - 40));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const chartData = useMemo(() => {
     const baseData = generateData(submittedValues);
     
@@ -77,11 +86,15 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
   }, [data, baselineData, submittedValues]);
 
   return (
-    <div style={{ width: "100%" }}>
+    <div style={{ 
+        width: "min(600px, 100%)",
+        marginTop: "clamp(3px, 0.5vw, 5px)",
+        marginBottom: "clamp(5px, 1vw, 10px)"
+      }}>
       <LineChart
-        width={400}
-        height={350}
-        margin={{ top: 5, right: 50, left: 50, bottom: 45 }}
+        width={width}
+        height={425}
+        margin={{ top: 40, right: 40, left: 40, bottom: 40 }}
         data={chartData}
       >
         <CartesianGrid strokeDasharray="3 3" />
@@ -113,7 +126,7 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
           verticalAlign="bottom"
           align="center"
           wrapperStyle={{
-            paddingTop: "20px"
+            paddingTop: "40px"
           }}
         />
         <Line
