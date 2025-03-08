@@ -135,6 +135,7 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
           stroke="#2ecc71"
           name="Baseline Success Probability"
           dot={false}
+          strokeDasharray="3 3"
         />
         <Line
           type="monotone"
@@ -142,11 +143,13 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
           stroke="#e74c3c"
           name="Pre-Mitigation Success Probability"
           dot={false}
+          strokeDasharray="3 3"
         />
         <Line
           type="monotone"
           dataKey="postMitigationProbability"
           stroke="#3498db"
+          strokeWidth={2}
           name="Post-Mitigation Success Probability"
           dot={false}
         />

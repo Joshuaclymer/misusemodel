@@ -179,6 +179,7 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   const [interpolatedData, setInterpolatedData] = useState([]);
   const [interpolatedTangent, setInterpolatedTangent] = useState([]);
   const [draggedPointIndex, setDraggedPointIndex] = useState(null);
+  const [showDragHint, setShowDragHint] = useState(true);
 
   useEffect(() => {
     const handleResize = () => {
@@ -187,6 +188,8 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+
 
   // Initialize data
   useEffect(() => {
@@ -320,12 +323,29 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
 
   const handleDragStart = (event, index) => {
     event.preventDefault();
+    if (index === 1) { // Middle point
+      setShowDragHint(false);
+    }
     setDraggedPointIndex(index);
   };
 
   return (
-      <div>
+      <div style={{ position: 'relative' }}>
         <h4 style={{ fontSize: 14, fontWeight: 500 }}>Queries executed vs effort</h4>
+        {showDragHint && (
+          <div 
+            className="drag-me-hint"
+            style={{
+              left: '45%',
+              top: '70%',
+              transform: 'translate(-50%, -100%)',
+              marginLeft: '30px',
+              fontWeight: 'bold'
+            }}
+          >
+            Drag me!
+          </div>
+        )}
 
       <LineChart
         className="query-queries-chart"

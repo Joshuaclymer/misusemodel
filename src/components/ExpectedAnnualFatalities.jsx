@@ -35,7 +35,7 @@ const ExpectedAnnualFatalities = ({
   } else {
       let string = "";
       if (expectedAnnualFatalities <= baseline * 1.25 && expectedAnnualFatalities >= baseline ) {
-        string = "✅ (~ baseline)";
+        string = "✅ (~= baseline)";
       } else if (expectedAnnualFatalities < baseline) {
         string = "✅ (< baseline)";
       } else {

@@ -18,6 +18,7 @@ import BlueBox from "./components/BlueBox.jsx";
 import OrangeBox from "./components/OrangeBox.jsx";
 import PurpleBox from "./components/PurpleBox.jsx";
 import Card from "./components/Card.jsx";
+import { ArcherContainer, ArcherElement } from "react-archer";
 
 import {
   runModel,
@@ -149,11 +150,13 @@ function App() {
     // }
   };
 
+  let showArrows = width >= 1200;
+
   return (
     <div className="App">
       <div>
         <h1 style={{ textAlign: "center", margin: "40px" }}>
-          AI biological misuse risk model
+          Interactive AI biological misuse risk model
         </h1>
         <form
           onSubmit={(e) => {
@@ -162,386 +165,642 @@ function App() {
           }}
         >
           <div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                width: "100%",
-                // padding: "clamp(0px, 2vw, 20px)"
-              }}
-            >
+            <ArcherContainer strokeColor="#666">
               <div
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  maxWidth: "1400px",
+                  alignItems: "center",
                   width: "100%",
-                  // margin: "clamp(20px, 5vw, 80px) auto",
-                  gap: width < 1200 ? "0px" : "40px",
+                  // padding: "clamp(0px, 2vw, 20px)"
                 }}
               >
-                <BlueBox>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      width: "100%",
-                    }}
-                  >
-                    <h3
-                      style={{
-                        margin: "0px",
-                        marginTop: "30px",
-                        marginBottom: "10px",
-                        color: "#113A58",
-                      }}
-                    >
-                      Evidence from expert surveys
-                    </h3>
-                  </div>
-                  <div
-                    className="responsive-container"
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      minHeight: "600px",
-                      backgroundColor: "#e3f2fd",
-                      gap: "40px",
-                      padding: "20px",
-                      width: "100%",
-                      maxWidth: "1400px",
-                      margin: "0 auto",
-                    }}
-                  >
-                    <SuccessGivenEffort
-                      onChange={(params) => {
-                        setBaselineTextFields(params);
-                      }}
-                      data={inputParams.baselineSuccessProbabilityGivenEffort}
-                      initialValues={baselineTextFields}
-                      baselineValues={baselineTextFields}
-                      preMitigationValues={preMitigationTextFields}
-                    />
-                    <EffortCDF
-                      onChange={(params) => {
-                        setInputParams((prev) => ({
-                          ...prev,
-                          effortCDF: generateCDFData(params),
-                        }));
-                        refreshPage();
-                      }}
-                    />
-
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        flex: 1,
-                        minHeight: "500px",
-                        gap: "20px",
-                        width: "100%",
-                        // margin: "0 auto"
-                      }}
-                    >
-                      <ParameterSelector
-                        inputParams={inputParams}
-                        setInputParams={setInputParams}
-                        refreshPage={refreshPage}
-                      />
-                      <ExpectedAnnualFatalities
-                        titleWord="Baseline"
-                        titleColor="#2ecc71"
-                        expectedAnnualFatalities={
-                          getOutputParams().baselineExpectedAnnualFatalities
-                        }
-                      />
-                    </div>
-                  </div>
-                </BlueBox>
-                {/* Section 2 */}
                 <div
                   style={{
                     display: "flex",
-                    flexDirection: width < 1200 ? "column" : "row",
-                    alignItems: "stretch",
-                    justifyContent: "center",
+                    flexDirection: "column",
+                    maxWidth: "1400px",
                     width: "100%",
-                    minHeight: width < 1200 ? "auto" : "800px",
+                    // margin: "clamp(20px, 5vw, 80px) auto",
+                    gap: width < 1200 ? "0px" : "40px",
                   }}
                 >
-                  <OrangeBox>
+                  <BlueBox>
                     <div
                       style={{
-                        flexDirection: "column",
-                        justifyContent: "flex-start",
-                        alignItems: "center",
+                        display: "flex",
+                        justifyContent: "center",
                         width: "100%",
-                        flex: 1,
-                        // gap: "40px",
-                        marginTop: "30px",
-                        marginBottom: "30px",
-                        // padding: "50px",
                       }}
                     >
                       <h3
                         style={{
-                          margin: 0,
-                          color: "#765117",
-                        }}
-                      >
-                        Evidence from capability evaluations + experts
-                      </h3>
-                    </div>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        height: "100%",
-                        // margin: "0 auto"
-                      }}
-                    >
-                      <SuccessGivenEffort
-                        title="Pre-Mitigation success probability"
-                        onChange={(params) => {
-                          setPreMitigationTextFields(params);
-                          // refreshPage();
-                        }}
-                        data={
-                          inputParams.preMitigationSuccessProbabilityGivenEffort
-                        }
-                        color="#e74c3c"
-                        initialValues={preMitigationTextFields}
-                        baselineValues={baselineTextFields}
-                        preMitigationValues={preMitigationTextFields}
-                      />
-                      <ExpectedAnnualFatalities
-                        titleWord="Pre-Mitigation"
-                        titleColor="#e74c3c"
-                        expectedAnnualFatalities={
-                          getOutputParams()
-                            .preMitigationExpectedAnnualFatalities
-                        }
-                      />
-                    </div>
-                  </OrangeBox>
-                  <PurpleBox>
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "flex-start",
-                        alignItems: "center",
-                        width: "100%",
-                        height: "100%",
-                        // gap: "40px",
-                        // padding: "40px",
-                      }}
-                    >
-                      <h3
-                        style={{
+                          margin: "0px",
                           marginTop: "30px",
-                          marginBottom: "30px",
-                          color: "#59095E",
+                          marginBottom: "10px",
+                          color: "#113A58",
                         }}
                       >
-                        Evidence from safeguards evaluations
+                        Evidence from expert surveys
                       </h3>
                     </div>
                     <div
+                      className="responsive-container"
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: width < 1200 ? "1fr" : "1fr 1fr",
-                        gridTemplateRows: width < 1200 ? "1fr" : "1fr 1fr",
-                        gap: "0px",
-                        // width: "100%",
-                        height: "100%",
-                        padding: "0px",
-                      }}
-                    >
-                      <Card>
-                        <QueriesVsTime
-                          queriesPerMonth={
-                            inputParams.queriesAttackerExecutesPerMonth
-                          }
-                          onMouseUp={(data) => {
-                            // Get all time points at once using the efficient version
-                            const timeForQueries = fitQueriesCurve(data);
-                            const baselineCurve =
-                              generateCurvePoints(baselineTextFields);
-                            const preMitigationCurve = generateCurvePoints(
-                              preMitigationTextFields
-                            );
-                            const updatedParams = {
-                              ...inputParams,
-                              timeToExecuteQueries: timeForQueries,
-                              baselineSuccessProbabilityGivenEffort:
-                                baselineCurve,
-                              preMitigationSuccessProbabilityGivenEffort:
-                                preMitigationCurve,
-                            };
-                            setInputParams(updatedParams);
-                          }}
-                        />
-                      </Card>
-                      <Card>
-                        <QueriesVsTimeWithBans
-                          timeToExecuteQueries={
-                            inputParams.timeToExecuteQueries
-                          }
-                          bansGivenQueries={inputParams.bansVsQueries}
-                          timeLostGivenBans={inputParams.timeLostToBans}
-                        />
-                      </Card>
-                      <Card>
-                        <BansVsQueries
-                          queriesPerMonth={
-                            inputParams.queriesAttackerExecutesPerMonth
-                          }
-                          onMouseUp={(data) => {
-                            // get the full ban curve
-                            const bansVsQueries = getBansForQueries(data);
-                            setInputParams((prev) => ({
-                              ...prev,
-                              bansVsQueries: bansVsQueries,
-                            }));
-                          }}
-                        />
-                      </Card>
-                      <Card>
-                        <TimeLostToBans
-                          onMouseUp={(data) => {
-                            const timeLostTobans = getTimeLostGivenBans(data);
-                            setInputParams((prev) => ({
-                              ...prev,
-                              timeLostToBans: timeLostTobans,
-                            }));
-                          }}
-                        />
-                      </Card>
-                    </div>
-                    <ExpectedAnnualFatalities
-                      titleWord="Post-Mitigation"
-                      titleColor="#3498DB"
-                      expectedAnnualFatalities={
-                        getOutputParams().postMitigationExpectedAnnualFatalities
-                      }
-                    />
-                  </PurpleBox>
-                </div>
-                <div>
-                  <div style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    width: "100%",
-                    gap: "30px",
-                  }}>
-                    <h2
-                      style={{
-                        marginTop: "20px",
-                        marginBottom: "40px",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        minHeight: "600px",
+                        backgroundColor: "#e3f2fd",
+                        gap: "40px",
+                        padding: "20px",
                         width: "100%",
-                        maxWidth: "500px",
-                        textAlign: "center",
+                        maxWidth: "1400px",
+                        margin: "0 auto",
                       }}
                     >
-                     Predictions 
-                    </h2>
-                  </div>
+                      <ArcherElement
+                        id="effort-baseline-success-arrow"
+                        relations={[
+                          {
+                            targetId: "expected-fatalities-target",
+                            targetAnchor: "left",
+                            sourceAnchor: "right",
+                            style: {
+                              strokeColor: showArrows ? "#666" : "transparent",
+                              strokeWidth: 1,
+                            },
+                          },
+                        ]}
+                      >
+                        <div>
+                          <SuccessGivenEffort
+                            onChange={(params) => {
+                              setBaselineTextFields(params);
+                            }}
+                            data={
+                              inputParams.baselineSuccessProbabilityGivenEffort
+                            }
+                            initialValues={baselineTextFields}
+                            baselineValues={baselineTextFields}
+                            preMitigationValues={preMitigationTextFields}
+                          />
+                        </div>
+                      </ArcherElement>
+                      <ArcherElement
+                        id="effort-cdf-arrow"
+                        relations={[
+                          {
+                            targetId: "expected-fatalities-target",
+                            targetAnchor: "left",
+                            sourceAnchor: "right",
+                            style: {
+                              strokeColor: showArrows ? "#666" : "transparent",
+                              strokeWidth: 1,
+                            },
+                          },
+                          {
+                            targetId: "expected-fatalities-pre-mitigation",
+                            targetAnchor: "right",
+                            sourceAnchor: "bottom",
+                            style: {
+                              strokeColor: showArrows ? "#666" : "transparent",
+                              strokeWidth: 1,
+                            },
+                          },
+                          {
+                            targetId: "expected-fatalities-post-mitigation",
+                            targetAnchor: "left",
+                            sourceAnchor: "bottom",
+                            style: {
+                              strokeColor: showArrows ? "#666" : "transparent",
+                              strokeWidth: 1,
+                            },
+                          }
+                        ]}
+                      >
+                        <div>
+                          <EffortCDF
+                            onChange={(params) => {
+                              setInputParams((prev) => ({
+                                ...prev,
+                                effortCDF: generateCDFData(params),
+                              }));
+                              refreshPage();
+                            }}
+                          />
+                        </div>
+                      </ArcherElement>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flex: 1,
+                          minHeight: "500px",
+                          gap: "20px",
+                          width: "100%",
+                          // margin: "0 auto"
+                        }}
+                      >
+                        <ArcherElement
+                          id="parameter-selector-arrow"
+                          relations={[
+                            {
+                              targetId: "expected-fatalities-target",
+                              targetAnchor: "top",
+                              sourceAnchor: "bottom",
+                              style: {
+                                strokeColor: showArrows
+                                  ? "#666"
+                                  : "transparent",
+                                strokeWidth: 1,
+                              },
+                            },
+                            {
+                              targetId: "expected-fatalities-pre-mitigation",
+                              targetAnchor: "right",
+                              sourceAnchor: "left",
+                              style: {
+                                strokeColor: showArrows
+                                  ? "#666"
+                                  : "transparent",
+                                strokeWidth: 1,
+                              },
+                            },
+                            {
+                              targetId: "expected-fatalities-post-mitigation",
+                              targetAnchor: "right",
+                              sourceAnchor: "right",
+                              style: {
+                                strokeColor: showArrows
+                                  ? "#666"
+                                  : "transparent",
+                                strokeWidth: 1,
+                              },
+                            },
+                          ]}
+                        >
+                          <div>
+                            <ParameterSelector
+                              inputParams={inputParams}
+                              setInputParams={setInputParams}
+                              refreshPage={refreshPage}
+                            />
+                          </div>
+                        </ArcherElement>
+                        <ArcherElement id="expected-fatalities-target">
+                          <div>
+                            <ExpectedAnnualFatalities
+                              titleWord="Baseline"
+                              titleColor="#2ecc71"
+                              expectedAnnualFatalities={
+                                getOutputParams()
+                                  .baselineExpectedAnnualFatalities
+                              }
+                            />
+                          </div>
+                        </ArcherElement>
+                      </div>
+                    </div>
+                  </BlueBox>
+                  {/* Section 2 */}
                   <div
                     style={{
                       display: "flex",
                       flexDirection: width < 1200 ? "column" : "row",
+                      alignItems: "stretch",
                       justifyContent: "center",
-                      alignItems: width < 1200 ? "center" : "flex-start",
                       width: "100%",
-                      marginBottom: "100px",
+                      // minHeight: width < 1200 ? "auto" : "800px",
                     }}
                   >
                     <div
                       style={{
                         display: "flex",
                         flexDirection: "column",
-                        alignItems: width < 1200 ? "center" : "flex-end",
-                        justifyContent: "space-between",
-                        marginRight: width < 1200 ? "0px" : "50px",
-                        gap: "30px",
                         width: "100%",
                       }}
                     >
-                      <ExpectedAnnualFatalities
-                        titleWord="Baseline"
-                        titleColor="#2ecc71"
-                        width = {width < 1200 ? "100%" : "600px"}
-                        expectedAnnualFatalities={
-                          getOutputParams().baselineExpectedAnnualFatalities
-                        }
-                      />
-                      <ExpectedAnnualFatalities
-                        titleWord="Pre-Mitigation"
-                        titleColor="#e74c3c"
-                        width = {width < 1200 ? "100%" : "600px"}
-                        expectedAnnualFatalities={
-                          getOutputParams()
-                            .preMitigationExpectedAnnualFatalities
-                        }
-                      />
-                      <ExpectedAnnualFatalities
-                        titleWord="Post-Mitigation"
-                        titleColor="#3498DB"
-                        width = {width < 1200 ? "100%" : "600px"}
-                        expectedAnnualFatalities={
-                          getOutputParams()
-                            .postMitigationExpectedAnnualFatalities
-                        }
-                        baseline={
-                          getOutputParams().baselineExpectedAnnualFatalities
-                        }
-                      />
-                    </div>
+                      <OrangeBox>
+                        <div
+                          style={{
+                            flexDirection: "column",
+                            justifyContent: "flex-start",
+                            alignItems: "center",
+                            width: "100%",
+                            // flex: 1,
+                            // gap: "40px",
+                            marginTop: "30px",
+                            marginBottom: "30px",
+                            // padding: "50px",
+                          }}
+                        >
+                          <h3
+                            style={{
+                              margin: 0,
+                              color: "#765117",
+                            }}
+                          >
+                            Evidence from capability evaluations + experts
+                          </h3>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            height: "100%",
+                            // margin: "0 auto"
+                          }}
+                        >
+                          <ArcherElement
+                            id="success-pre-mitigation"
+                            relations={[
+                              {
+                                targetId: "expected-fatalities-pre-mitigation",
+                                targetAnchor: "top",
+                                sourceAnchor: "bottom",
+                                style: {
+                                  strokeColor: showArrows
+                                    ? "#666"
+                                    : "transparent",
+                                  strokeWidth: 1,
+                                },
+                              },
+                              {
+                                targetId: "success-probability-comparison",
+                                targetAnchor: "left",
+                                sourceAnchor: "right",
+                                style: {
+                                  strokeColor: showArrows
+                                    ? "#666"
+                                    : "transparent",
+                                  strokeWidth: 1,
+                                },
+                              }
+                            ]}
+                          >
+                            <div>
+                              <SuccessGivenEffort
+                                title="Pre-Mitigation success probability"
+                                onChange={(params) => {
+                                  setPreMitigationTextFields(params);
+                                  // refreshPage();
+                                }}
+                                data={
+                                  inputParams.preMitigationSuccessProbabilityGivenEffort
+                                }
+                                color="#e74c3c"
+                                initialValues={preMitigationTextFields}
+                                baselineValues={baselineTextFields}
+                                preMitigationValues={preMitigationTextFields}
+                              />
+                            </div>
+                          </ArcherElement>
+                          <div style={{ height: "40px" }}></div>
+                          <ArcherElement id="expected-fatalities-pre-mitigation">
+                            <div>
+                              <ExpectedAnnualFatalities
+                                titleWord="Pre-Mitigation"
+                                titleColor="#e74c3c"
+                                expectedAnnualFatalities={
+                                  getOutputParams()
+                                    .preMitigationExpectedAnnualFatalities
+                                }
+                              />
+                            </div>
+                          </ArcherElement>
+                        </div>
+                      </OrangeBox>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        marginLeft: width < 1200 ? "0px" : "50px",
-                        alignItems: width < 1200 ? "center" : "flex-start",
-                        justifyContent: "center",
-                        gap: "30px",
-                        width: "100%",
-                      }}
-                    >
-                    <Card>
-                      <ComparisonSuccessGivenEffort
-                        data={
-                          getOutputParams()
-                            .postMitigationSuccessProbabilityGivenEffort
-                        }
-                        baselineData={
-                          inputParams.baselineSuccessProbabilityGivenEffort
-                        }
-                        readOnly={true}
-                        title="Success Probability Comparison"
-                        submittedValues={preMitigationTextFields}
-                      />
-                    </Card>
+                      <div
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          backgroundColor: "#F6F6F6",
+                          border: "5px solid #D3D3D3",
+                          boxSizing: "border-box",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: width < 1200 ? "column" : "row",
+                            justifyContent: "center",
+                            alignItems: width < 1200 ? "center" : "flex-start",
+                            width: "100%",
+                            // marginBottom: "100px",
+                          }}
+                        >
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              // marginRight: width < 1200 ? "0px" : "50px",
+                              gap: "30px",
+                              width: "100%",
+                            }}
+                          >
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                width: "100%",
+                                gap: "30px",
+                              }}
+                            >
+                              <h3
+                                style={{
+                                  margin: "0px",
+                                  marginTop: "30px",
+                                  marginBottom: "10px",
+                                  color: "#113A58",
+                                }}
+                              >
+                                Summary of predictions
+                              </h3>
+                            </div>
+                            <ExpectedAnnualFatalities
+                              titleWord="Baseline"
+                              titleColor="#2ecc71"
+                              expectedAnnualFatalities={
+                                getOutputParams()
+                                  .baselineExpectedAnnualFatalities
+                              }
+                            />
+                            <ExpectedAnnualFatalities
+                              titleWord="Pre-Mitigation"
+                              titleColor="#e74c3c"
+                              expectedAnnualFatalities={
+                                getOutputParams()
+                                  .preMitigationExpectedAnnualFatalities
+                              }
+                            />
+                            <ExpectedAnnualFatalities
+                              titleWord="Post-Mitigation"
+                              titleColor="#3498DB"
+                              expectedAnnualFatalities={
+                                getOutputParams()
+                                  .postMitigationExpectedAnnualFatalities
+                              }
+                              baseline={
+                                getOutputParams()
+                                  .baselineExpectedAnnualFatalities
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
+                    <PurpleBox>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "flex-start",
+                          alignItems: "center",
+                          width: "100%",
+                          height: "100%",
+                          // gap: "40px",
+                          // padding: "40px",
+                        }}
+                      >
+                        <h3
+                          style={{
+                            marginTop: "30px",
+                            marginBottom: "30px",
+                            color: "#59095E",
+                          }}
+                        >
+                          Evidence from safeguards evaluations
+                        </h3>
+                      </div>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: width < 1200 ? "1fr" : "1fr 1fr",
+                          gridTemplateRows: width < 1200 ? "1fr" : "1fr 1fr",
+                          gap: "20px",
+                          // width: "100%",
+                          height: "100%",
+                          padding: "0px",
+                        }}
+                      >
+                        <ArcherElement id="queries-vs-time" relations={[
+                          {
+                            targetId: "queries-vs-time-with-bans",
+                            targetAnchor: "left",
+                            sourceAnchor: "right",
+                            style: {
+                              strokeColor: showArrows
+                                ? "#666"
+                                : "transparent",
+                              strokeWidth: 1,
+                            },
+                          },
+                        ]}>
+                          <div>
+                            <Card>
+                              <QueriesVsTime
+                                queriesPerMonth={
+                                  inputParams.queriesAttackerExecutesPerMonth
+                                }
+                                onMouseUp={(data) => {
+                                  // Get all time points at once using the efficient version
+                                  const timeForQueries = fitQueriesCurve(data);
+                                  const baselineCurve =
+                                    generateCurvePoints(baselineTextFields);
+                                  const preMitigationCurve =
+                                    generateCurvePoints(
+                                      preMitigationTextFields
+                                    );
+                                  const updatedParams = {
+                                    ...inputParams,
+                                    timeToExecuteQueries: timeForQueries,
+                                    baselineSuccessProbabilityGivenEffort:
+                                      baselineCurve,
+                                    preMitigationSuccessProbabilityGivenEffort:
+                                      preMitigationCurve,
+                                  };
+                                  setInputParams(updatedParams);
+                                }}
+                              />
+                            </Card>
+                          </div>
+                        </ArcherElement>
+                        <ArcherElement id="bans-vs-queries" relations={
+                          [
+                            {
+                              targetId: "queries-vs-time-with-bans",
+                              targetAnchor: "top",
+                              sourceAnchor: "bottom",
+                              style: {
+                                strokeColor: showArrows
+                                  ? "#666"
+                                  : "transparent",
+                                strokeWidth: 1,
+                              },
+                            }
+                          ]
+                        }>
+                          <div>
+                            <Card>
+                              <BansVsQueries
+                                queriesPerMonth={
+                                  inputParams.queriesAttackerExecutesPerMonth
+                                }
+                                onMouseUp={(data) => {
+                                  // get the full ban curve
+                                  const bansVsQueries = getBansForQueries(data);
+                                  setInputParams((prev) => ({
+                                    ...prev,
+                                    bansVsQueries: bansVsQueries,
+                                  }));
+                                }}
+                              />
+                            </Card>
+                          </div>
+                        </ArcherElement>
+                        <ArcherElement id="time-lost-to-bans" relations={[
+                          {
+                            targetId: "queries-vs-time-with-bans",
+                            targetAnchor: "left",
+                            sourceAnchor: "right",
+                            style: {
+                              strokeColor: showArrows
+                                ? "#666"
+                                : "transparent",
+                              strokeWidth: 1,
+                            },
+                          }
+                        ]}>
+                          <div>
+                            <Card>
+                              <TimeLostToBans
+                                onMouseUp={(data) => {
+                                  const timeLostTobans =
+                                    getTimeLostGivenBans(data);
+                                  setInputParams((prev) => ({
+                                    ...prev,
+                                    timeLostToBans: timeLostTobans,
+                                  }));
+                                }}
+                              />
+                            </Card>
+                          </div>
+                        </ArcherElement>
+                        <ArcherElement id="queries-vs-time-with-bans" relations={[
+                          {
+                            targetId: "success-probability-comparison",
+                            targetAnchor: "top",
+                            sourceAnchor: "bottom",
+                            style: {
+                              strokeColor: showArrows
+                                ? "#666"
+                                : "transparent",
+                              strokeWidth: 1,
+                            },
+                          },
+                        ]}>
+                          <div>
+                            <Card>
+                              <QueriesVsTimeWithBans
+                                timeToExecuteQueries={
+                                  inputParams.timeToExecuteQueries
+                                }
+                                bansGivenQueries={inputParams.bansVsQueries}
+                                timeLostGivenBans={inputParams.timeLostToBans}
+                              />
+                            </Card>
+                          </div>
+                        </ArcherElement>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          marginTop: "30px",
+                          marginLeft: width < 1200 ? "0px" : "50px",
+                          alignItems: width < 1200 ? "center" : "flex-start",
+                          justifyContent: "center",
+                          gap: "30px",
+                          width: "100%",
+                        }}
+                      >
+                        <ArcherElement id="success-probability-comparison" relations={[
+                          {
+                            targetId: "expected-fatalities-post-mitigation",
+                            targetAnchor: "top",
+                            sourceAnchor: "bottom",
+                            style: {
+                              strokeColor: showArrows
+                                ? "#666"
+                                : "transparent",
+                              strokeWidth: 1,
+                            },
+                          }
+                        ]}>
+                          <div>
+                            <Card>
+                              <ComparisonSuccessGivenEffort
+                                data={
+                                  getOutputParams()
+                                    .postMitigationSuccessProbabilityGivenEffort
+                                }
+                                baselineData={
+                                  inputParams.baselineSuccessProbabilityGivenEffort
+                                }
+                                readOnly={true}
+                                title="Success Probability Comparison"
+                                submittedValues={preMitigationTextFields}
+                              />
+                            </Card>
+                          </div>
+                        </ArcherElement>
+                      </div>
+                      <div style={{ height: "40px" }}></div>
+                      <ArcherElement id="expected-fatalities-post-mitigation">
+                        <div style={{ display: "flex",justifyContent: "center"}}>
+                          <ExpectedAnnualFatalities
+                            titleWord="Post-Mitigation"
+                            titleColor="#3498DB"
+                            expectedAnnualFatalities={
+                              getOutputParams()
+                                .postMitigationExpectedAnnualFatalities
+                            }
+                          />
+                        </div>
+                      </ArcherElement>
+                    </PurpleBox>
                   </div>
                 </div>
               </div>
-            </div>
+            </ArcherContainer>
           </div>
         </form>
       </div>
-                {/* Footer */}
-                <div style={{width: "100%", textAlign: "center", paddingTop: "40px", paddingBottom: "40px", backgroundColor: "#FBFBFB"}}>
-                  <p>This site was created by Joshua Clymer for the research paper "A Safety Case Sketch for Evaluating Safeguards Against AI-Enabled Bioterrorism." </p>
-                </div>
+      {/* Footer */}
+      <div
+        style={{
+          width: "100%",
+          textAlign: "center",
+          paddingTop: "40px",
+          paddingBottom: "40px",
+          backgroundColor: "#FBFBFB",
+        }}
+      >
+        <p>
+          This site was created by Joshua Clymer for the research paper "A
+          Safety Case Sketch for Evaluating Safeguards Against AI-Enabled
+          Bioterrorism."
+        </p>
+      </div>
     </div>
   );
 }
