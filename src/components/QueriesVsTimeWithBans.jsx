@@ -16,9 +16,6 @@ const QueriesVsTimeWithBans = ({
   bansGivenQueries, // from BansVsQueries
   timeLostGivenBans = [], // from TimeLostToBans
 }) => {
-  console.log("timeToExecuteQueries", timeToExecuteQueries);
-  console.log("bansGivenQueries", bansGivenQueries);
-  console.log("timeLostGivenBans", timeLostGivenBans);
   let timeToExecuteQueriesDisplayed = calculateTimeToExecuteQueriesGivenBans({
     bansGivenQueries,
     timeLostGivenBans,

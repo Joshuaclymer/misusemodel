@@ -1,6 +1,6 @@
 import * as math from "mathjs";
 
-const ANCHOR_MONTHS = [3, 12, 36];
+const ANCHOR_MONTHS = [3, 12, 36, 60];
 
 // Fit monotonic cubic Hermite spline for success probability and effort CDF
 export const fitCurveWithFritschCarlson = (x, points, xs) => {
@@ -55,10 +55,10 @@ export const fitCurveWithFritschCarlson = (x, points, xs) => {
 
 
 // Fit effort CDF curve
-export const fitEffortCDF = (x, panch1, panch2, panch3) => {
+export const fitEffortCDF = (x, panch1, panch2, panch3, panch4) => {
   return fitCurveWithFritschCarlson(
     x,
-    [0, panch1 / 100, panch2 / 100, panch3 / 100],
+    [0, panch1 / 100, panch2 / 100, panch3 / 100, panch4 / 100],
     [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]
   );
 };
@@ -69,13 +69,20 @@ export const generateCurvePoints = (params, valueKey = 'successProbability') => 
   const points = [];
   const values = [params.successanch1 / 100, params.successanch2 / 100, params.successanch3 / 100];
 
+  // Calculate the value at 36 months (last anchor point)
+  const valueAt36 = fitCurveWithFritschCarlson(
+    36,
+    [0, ...values],
+    [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]
+  );
+
   // Generate points from 0.1 to 60 months on a log scale
   for (let i = 0; i <= 100; i++) {
     const x = i / 100;
     const time = Math.exp(Math.log(0.1) + x * (Math.log(60) - Math.log(0.1)));
 
-    // Calculate value using Fritsch-Carlson interpolation
-    const value = fitCurveWithFritschCarlson(
+    // Use valueAt36 for any time beyond 36 months
+    const value = time > 36 ? valueAt36 : fitCurveWithFritschCarlson(
       time,
       [0, ...values],
       [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]

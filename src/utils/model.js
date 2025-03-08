@@ -10,13 +10,14 @@ export const calculateExpectedAnnualFatalities = (
   effortCDF
 ) => {
 
-  console.log("effortCDF", effortCDF)
+  console.log("successProbabilityGivenEffort", successProbabilityGivenEffort)
+
   // Calculate the expected number of successful attempts
   var sumOfSuccessProbabilities = 0;
   var sumOfTimeProbabilities = 0;
   for (let i = 1; i < effortCDF.length; i++) {
     const timeThisStep = effortCDF[i].months
-    const nearestSuccessProbabilityPoint = successProbabilityGivenEffort.find(p => p.time >= timeThisStep);
+    const nearestSuccessProbabilityPoint = successProbabilityGivenEffort.find(p => p.time >= timeThisStep) || successProbabilityGivenEffort[successProbabilityGivenEffort.length - 1];
     if (!nearestSuccessProbabilityPoint) {
       continue;
     }
@@ -24,12 +25,10 @@ export const calculateExpectedAnnualFatalities = (
     sumOfSuccessProbabilities += nearestSuccessProbabilityPoint.successProbability * probabilityOfTime;
     sumOfTimeProbabilities += probabilityOfTime;
   }
-  const expectedSuccess = sumOfSuccessProbabilities / sumOfTimeProbabilities;
-  console.log("sumOfSuccessProbabilities", sumOfSuccessProbabilities)
-  console.log("sumOfTimeProbabilities", sumOfTimeProbabilities)
-  console.log("expectedSuccess", expectedSuccess)
+  // console.log("sumOfSuccess", sumOfSuccessProbabilities)
+  // console.log("sumOfTime", sumOfTimeProbabilities);
+  const expectedSuccess = sumOfSuccessProbabilities;
   const expectedAnnualFatalities = expectedSuccess * expectedAnnualAttempts * expectedFatalitiesPerSuccessfulAttempt;
-  console.log("expectedAnnualFatalities", expectedAnnualFatalities)
 
   // Calculate total expected fatalities
   return expectedAnnualFatalities;
@@ -58,43 +57,6 @@ export const calculateTimeToExecuteQueriesGivenBans = ({
     });
   }
 
-  // // Calculate tangent line from last two points
-  // if (timeToExecuteQueriesGivenBans.length >= 2) {
-  //   const lastPoint =
-  //     timeToExecuteQueriesGivenBans[timeToExecuteQueriesGivenBans.length - 1];
-  //   const prevPoint =
-  //     timeToExecuteQueriesGivenBans[timeToExecuteQueriesGivenBans.length - 2];
-
-  //   // Calculate slope using last two points
-  //   const slope =
-  //     (lastPoint.queries - prevPoint.queries) /
-  //     (lastPoint.time - prevPoint.time);
-
-  //   // Start from the last valid point and extrapolate until we hit bounds
-  //   let currentTime = lastPoint.time;
-  //   let currentQueries = lastPoint.queries;
-  //   while currentQueries
-  //   const step = 0.1;
-
-  //   while (currentTime < 45 && currentQueries < 45) {
-  //     const nextTime = currentTime + step;
-  //     const nextQueries =
-  //       lastPoint.queries + slope * (nextTime - lastPoint.time);
-
-  //     if (nextTime > 45 || nextQueries > 45) break;
-
-  //     timeToExecuteQueriesGivenBans.push({
-  //       time: nextTime,
-  //       queries: nextQueries,
-  //     });
-
-  //     currentTime = nextTime;
-  //     currentQueries = nextQueries;
-  //   }
-  // }
-
-  // for debugging
-  // return Array.from({ length: 1000 }, (_, i) => i + 1)
   return timeToExecuteQueriesGivenBans;
 };
 
@@ -127,7 +89,6 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
   bansVsQueries,
   timeLostGivenBans
 ) => {
-  console.log("getting post mitigation success prob");
   // First calculate all points
   const timeToExecuteQueriesGivenBans = calculateTimeToExecuteQueriesGivenBans({
     bansGivenQueries: bansVsQueries,
@@ -149,14 +110,9 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
       (point) => point.queries === queries
     );
     if (!queryPoint) {
-      console.error("Error in getPostMitigationSuccessProbabilityGivenEffort:");
-      console.error("Could not find time for queries:", queries);
-      console.error("Available data points:", timeToExecuteQueriesGivenBans);
       continue;
     }
     const timeSpentJailbreaking = queryPoint.time / 30;
-    // console.log("timeSpentJailbreaking", timeSpentJailbreaking);
-    // console.log("timeIfUnmitigated", timeIfUnmitigated);
     const totalTime = timeIfUnmitigated + timeSpentJailbreaking;
 
     const successProbability = arrayToFunction(
@@ -166,9 +122,6 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
       timeIfUnmitigated
     );
 
-    // if (totalTime < 60) {
-    //   console.log(`Debug early point:\n  queries=${queries}\n  timeBetweenQueries=${timeBetweenQueries}\n  timeIfUnmitigated=${timeIfUnmitigated}\n  timeSpentJailbreaking=${timeSpentJailbreaking}\n  totalTime=${totalTime}\n  successProbability=${successProbability}`);
-    // }
 
     if (totalTime < 0.1) continue;
     else
@@ -188,13 +141,10 @@ export const getPostMitigationSuccessProbabilityGivenEffort = (
       successProbability: p.successProbability,
     }));
 
-  console.log("Valid points:", validPoints);
   return validPoints;
 };
 
 export const runModel = (params) => {
-  console.log("running model");
-  // console.log("timeToExecuteQueries", params.timeToExecuteQueries);
   const postMitigationSuccessProbabilityGivenEffort =
     getPostMitigationSuccessProbabilityGivenEffort(
       params.queriesAttackerExecutesPerMonth,
@@ -218,7 +168,6 @@ export const runModel = (params) => {
       params.effortCDF
     );
   
-    console.log("preMitigationExpectedAnnualFatalities", preMitigationExpectedAnnualFatalities);
 
   const postMitigationExpectedAnnualFatalities =
     calculateExpectedAnnualFatalities(

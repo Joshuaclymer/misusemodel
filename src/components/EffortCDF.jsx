@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { fitEffortCDF } from '../utils/curves.js';
 
-const ANCHOR_MONTHS = [3, 12, 36];
+const ANCHOR_MONTHS = [3, 12, 36, 60];
 
 
 
@@ -18,6 +18,7 @@ export const generateCDFData = (parameters) => {
   const panch1 = params.effortanch1;
   const panch2 = params.effortanch2;
   const panch3 = params.effortanch3;
+  const panch4 = params.effortanch4;
 
   if (panch1 === undefined || panch2 === undefined || panch3 === undefined) {
     console.error('Missing required anchor points:', params);
@@ -46,7 +47,7 @@ export const generateCDFData = (parameters) => {
 
     points.push({
       months,
-      cumulativeProbability: fitEffortCDF(months, panch1, panch2, panch3)
+      cumulativeProbability: fitEffortCDF(months, panch1, panch2, panch3, panch4)
     });
   }
 
@@ -57,7 +58,8 @@ const EffortCDF = ({ onChange }) => {
   const [parameters, setParameters] = useState({
     effortanch1: 90,
     effortanch2: 95,
-    effortanch3: 98
+    effortanch3: 98,
+    effortanch4: 100
   });
 
   const effortCDFData = useMemo(
@@ -86,7 +88,9 @@ const EffortCDF = ({ onChange }) => {
   const handleParameterChange = (paramName, value) => {
     const newParameters = {
       ...parameters,
-      [paramName]: value
+      [paramName]: value,
+      // Always keep effortanch4 at 100
+      effortanch4: 100
     };
     setParameters(newParameters);
     onChange?.(newParameters);
@@ -112,7 +116,7 @@ const EffortCDF = ({ onChange }) => {
             marginBottom: "20px",
           }}
         >
-          {ANCHOR_MONTHS.map((month, index) => (
+          {ANCHOR_MONTHS.slice(0, 3).map((month, index) => (
             <div key={month}>
               <label>Effort at {month} months (%):</label>
               <input

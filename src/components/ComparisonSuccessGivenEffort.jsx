@@ -99,7 +99,7 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
           }}
         />
         <YAxis
-          domain={[0, 'dataMax']}
+          domain={[0, (dataMax) => Math.max(0.2, dataMax)]}
           tickFormatter={(value) => Number(value.toPrecision(2))}
           label={{
             value: "Success Probability",

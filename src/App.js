@@ -45,6 +45,7 @@ const initialEffortPoints = {
   effortanch1: 90,
   effortanch2: 95,
   effortanch3: 98,
+  effortanch4: 100,
 };
 
 function App() {
@@ -91,7 +92,6 @@ function App() {
 
   // Initialize input parameters from text data
   const computeInputParamsFromTextFields = () => {
-    console.log("computeInputParamsFromTextFields");
     try {
       setInputParams({
         ...inputParams,
@@ -109,7 +109,6 @@ function App() {
 
   // Function to refresh the page state
   const refreshPage = () => {
-    console.log("REFRESHING>>>");
     // try {
     //   computeInputParamsFromTextFields();
     //   // console.log(inputParams.timeToExecuteQueries);
@@ -223,7 +222,6 @@ function App() {
                   ...prev,
                   effortCDF: generateCDFData(params),
                 }));
-                console.log("params", params);
                 refreshPage();
               }}
             />
@@ -257,6 +255,8 @@ function App() {
                   }}
                   data={inputParams.baselineSuccessProbabilityGivenEffort}
                   initialValues={baselineTextFields}
+                  baselineValues={baselineTextFields}
+                  preMitigationValues={preMitigationTextFields}
                 />
 
                 <ExpectedAnnualFatalities
@@ -294,6 +294,8 @@ function App() {
                   data={inputParams.preMitigationSuccessProbabilityGivenEffort}
                   color="#e74c3c"
                   initialValues={preMitigationTextFields}
+                  baselineValues={baselineTextFields}
+                  preMitigationValues={preMitigationTextFields}
                 />
 
                 <div style={{ textAlign: "center", width: "100%" }}>
@@ -370,7 +372,6 @@ function App() {
                   onMouseUp={(data) => {
                     // get the full ban curve
                     const bansVsQueries = getBansForQueries(data);
-                    console.log("ban vs queries", bansVsQueries);
                     setInputParams((prev) => ({
                       ...prev,
                       bansVsQueries: bansVsQueries,
@@ -379,7 +380,6 @@ function App() {
                 />
                 <TimeLostToBans
                   onMouseUp={(data) => {
-                    console.log("time lost", data);
                     const timeLostTobans = getTimeLostGivenBans(data);
                     setInputParams((prev) => ({
                       ...prev,

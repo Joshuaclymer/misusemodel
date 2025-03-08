@@ -5,7 +5,6 @@ const ExpectedAnnualFatalities = ({
   expectedAnnualFatalities
 }) => {
 
-  console.log("EXPECTED FATALITIES", expectedAnnualFatalities);
   return (
     <div style={{ textAlign: "center", width: "100%" }}>
       <h3 style={{ margin: "0 0 10px 0" }}>

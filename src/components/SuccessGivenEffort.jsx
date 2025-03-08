@@ -9,45 +9,46 @@ import {
   Tooltip,
   Legend
 } from 'recharts';
-import { fitCurveWithFritschCarlson } from '../utils/curves.js';
+import { generateCurvePoints } from '../utils/curves.js';
 import { maxTimeMonths } from '../App.js';
 
 const ANCHOR_MONTHS = [3, 12, 36];
 
 
 
-const generateData = (parameters) => {
-  const points = [];
-  const successPoints = [
-    parameters.successanch1 / 100,
-    parameters.successanch2 / 100,
-    parameters.successanch3 / 100,
-  ];
+// const generateData = (parameters) => {
+//   const points = [];
+//   const successPoints = [
+//     parameters.successanch1 / 100,
+//     parameters.successanch2 / 100,
+//     parameters.successanch3 / 100,
+//   ];
 
-  for (let i = 0; i <= 100; i++) {
-    const x = i / 100;
-    // Use log scale from 0.1 months to 60 months (5 years)
-    const time = Math.exp(
-      Math.log(0.1) + x * (Math.log(maxTimeMonths) - Math.log(0.1))
-    );
+//   for (let i = 0; i <= 100; i++) {
+//     const x = i / 100;
+//     // Use log scale from 0.1 months to 60 months (5 years)
+//     const time = Math.exp(
+//       Math.log(0.1) + x * (Math.log(maxTimeMonths) - Math.log(0.1))
+//     );
 
-    // Calculate success probability using Fritsch-Carlson interpolation
-    const successProb = fitCurveWithFritschCarlson(
-      time,
-      [0, ...successPoints],
-      [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]
-    );
+//     // Calculate success probability using Fritsch-Carlson interpolation
+//     const successProb = fitCurveWithFritschCarlson(
+//       time,
+//       [0, ...successPoints],
+//       [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]
+//     );
 
-    points.push({
-      time,
-      successProbability: successProb
-    });
-  }
+//     points.push({
+//       time,
+//       successProbability: successProb
+//     });
+//   }
 
-  return points;
-};
+//   console.log("points", points)
+//   return points;
+// };
 
-const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probability Parameters', hideLabels = false, initialValues, color = '#2ecc71' }) => {
+const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probability Parameters', hideLabels = false, initialValues, color = '#2ecc71', baselineValues, preMitigationValues }) => {
   // Values shown in the input fields
   const [inputValues, setInputValues] = useState(initialValues || {
     successanch1: 0.1,
@@ -87,8 +88,16 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probabi
 
   const chartData = useMemo(() => {
     if (data) return data;
-    return generateData(submittedValues);
+    return generateCurvePoints(submittedValues);
   }, [data, submittedValues]);
+
+  // Calculate max y-value from both curves
+  const maxY = useMemo(() => {
+    const baselineMax = baselineValues ? generateCurvePoints(baselineValues).reduce((max, point) => Math.max(max, point.successProbability), 0) : 0;
+    const preMitigationMax = preMitigationValues ? generateCurvePoints(preMitigationValues).reduce((max, point) => Math.max(max, point.successProbability), 0) : 0;
+    const currentMax = data ? data.reduce((max, point) => Math.max(max, point.successProbability), 0) : 0;
+    return Math.max(0.2, baselineMax, preMitigationMax, currentMax);
+  }, [baselineValues, preMitigationValues, data]);
 
   return (
     <div style={{ width: "100%" }}>
@@ -154,7 +163,7 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probabi
           tickFormatter={(value) => value.toFixed(1)}
         />
         <YAxis
-          domain={[0, 'dataMax']}
+          domain={[0, maxY]}
           tickFormatter={(value) => Number(value.toPrecision(2))}
           label={{
             value: "Success Probability",
