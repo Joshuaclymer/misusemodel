@@ -100,9 +100,9 @@ const QueriesVsTimeWithBans = ({
       </h3>
       <LineChart
         data={smoothedTimeToExecuteQueriesDisplayed}
-        margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
-        width={400}
-        height={350}
+        margin={{ top: 5, right: 30, left: 40, bottom: 20 }}
+        width={300}
+        height={250}
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
@@ -127,7 +127,7 @@ const QueriesVsTimeWithBans = ({
         <Line
           type="monotone"
           dataKey="queries"
-          stroke="#8884d8"
+          stroke="#3498DB"
           dot={false}
           strokeWidth={2}
         />

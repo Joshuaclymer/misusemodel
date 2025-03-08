@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { fitEffortCDF } from '../utils/curves.js';
+import FormField from './FormField';
+import FormContainer from './FormContainer';
 
 const ANCHOR_MONTHS = [3, 12, 36, 60];
 
@@ -96,57 +98,51 @@ const EffortCDF = ({ onChange }) => {
     onChange?.(newParameters);
   };
 
+  const [width, setWidth] = useState(Math.min(400, window.innerWidth - 40));
+  useEffect(() => {
+    const handleResize = () => {
+      setWidth(Math.min(400, window.innerWidth - 40));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   return (
     <div
       style={{
-        width: "400px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "30px"
+        backgroundColor: "#FBFBFB",
+        borderRadius: "8px",
+        // padding: "20px",
+        // margin: "10px",
+        padding: "clamp(10px, 2vw, 20px)",
+        margin: "clamp(5px, 1vw, 10px)",
+        boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
       }}
     >
-      <div style={{ width: "100%" }}>
-        <h4 style={{ textAlign: "center", marginBottom: "20px" }}>Effort Distribution Parameters</h4>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "10px",
-            marginBottom: "20px",
-          }}
-        >
-          {ANCHOR_MONTHS.slice(0, 3).map((month, index) => (
-            <div key={month}>
-              <label>Effort at {month} months (%):</label>
-              <input
-                type="number"
-                value={inputValues[`effortanch${index + 1}`]}
-                onChange={(e) => {
-                  const value = e.target.value === '' ? '' : parseFloat(e.target.value);
-                  handleInputChange(`effortanch${index + 1}`, value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-                    handleParameterChange(`effortanch${index + 1}`, value);
-                  }
-                }}
-                style={{ width: "80px", marginLeft: "10px" }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      <FormContainer title="Effort Distribution Parameters">
+        {ANCHOR_MONTHS.slice(0, 3).map((month, index) => (
+          <FormField
+            key={month}
+            label={`Effort at ${month} months (%):`}
+            labelWidth="180px"
+            width="100px"
+            type="number"
+            min={0}
+            max={100}
+            value={inputValues[`effortanch${index + 1}`]}
+            onChange={(value) => handleInputChange(`effortanch${index + 1}`, value)}
+            onSubmit={(value) => handleParameterChange(`effortanch${index + 1}`, value)}
+          />
+        ))}
+      </FormContainer>
 
-      <div style={{ width: "100%" }}>
-        <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-          CDF(Effort of attempt)
-        </h3>
+      <div style={{marginTop: "5px", marginBottom: "10px" }}>
         <LineChart
-          width={400}
+          width={width}
           height={350}
-          margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
+          margin={{ top: 0, right: 50, left: 50, bottom: 35 }}
           data={effortCDFData}
         >
           <CartesianGrid strokeDasharray="3 3" />
@@ -159,38 +155,47 @@ const EffortCDF = ({ onChange }) => {
               value: "Months (log scale)",
               position: "bottom",
               offset: 20,
+              style: { fontSize: 12 }
             }}
+            tick={{ fontSize: 12 }}
             tickFormatter={(value) => (typeof value === 'number' ? value.toFixed(1) : value)}
           />
           <YAxis
             domain={[0, 1]}
+            tickFormatter={(value) => Number(value.toPrecision(2))}
             label={{
               value: "Cumulative Probability",
               angle: -90,
               position: "center",
               dx: -35,
+              style: { fontSize: 12 }
             }}
+            tick={{ fontSize: 12 }}
           />
           <Tooltip
             formatter={(value, name) => [typeof value === 'number' ? value.toFixed(4) : value, name]}
             labelFormatter={(value) =>
               `${typeof value === 'number' ? value.toFixed(1) : value} months of effort`
             }
+            contentStyle={{ fontSize: 12 }}
+            itemStyle={{ fontSize: 12 }}
           />
           <Legend
             layout="horizontal"
             align="center"
             verticalAlign="bottom"
             wrapperStyle={{
-              paddingTop: "10px",
-              bottom: -10,
+              fontSize: 12,
+              paddingTop: "15px",
+              paddingBottom: "5px",
+              bottom: 0
             }}
           />
           <Line
             type="monotone"
             dataKey="cumulativeProbability"
             stroke="#8884d8"
-            name="CDF(Effort of attempt)"
+            name={<span style={{ fontSize: 12 }}>CDF(Effort of attempt)</span>}
             dot={false}
           />
         </LineChart>

@@ -13,6 +13,11 @@ import TimeLostToBans from "./components/TimeLostToBans.jsx";
 import { getTimeLostGivenBans } from "./components/TimeLostToBans.jsx";
 import QueriesVsTimeWithBans from "./components/QueriesVsTimeWithBans.jsx";
 import { generateCDFData } from "./components/EffortCDF.jsx";
+import ParameterSelector from "./components/ParameterSelector.jsx";
+import BlueBox from "./components/BlueBox.jsx";
+import OrangeBox from "./components/OrangeBox.jsx";
+import PurpleBox from "./components/PurpleBox.jsx";
+import Card from "./components/Card.jsx";
 
 import {
   runModel,
@@ -21,6 +26,27 @@ import {
 
 // Maximum time in months for pre-mitigation and baseline curves
 export const maxTimeMonths = 60; // 60 months
+
+const useWindowSize = () => {
+  const [windowSize, setWindowSize] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return windowSize;
+};
 
 const initialTimeToExecuteQueries = [
   { time: 0, queries: 0, fixed: true },
@@ -49,6 +75,7 @@ const initialEffortPoints = {
 };
 
 function App() {
+  const { width } = useWindowSize();
   const [error, setError] = useState({ message: "", stack: "" });
 
   const [baselineTextFields, setBaselineTextFields] = useState({
@@ -115,7 +142,6 @@ function App() {
     //   const newOutputParams = runModelWithErrorHandling(inputParams);
     //   console.log("new output params", newOutputParams);
     //   if (!newOutputParams) return;
-
     //   setOutputParams(newOutputParams);
     //   setError({ message: "", stack: "" });
     // } catch (e) {
@@ -124,335 +150,363 @@ function App() {
   };
 
   return (
-    <div className="App" style={{ padding: "20px" }}>
+    <div className="App">
       <div>
-        <h1>Annual Novice-Made Bioweapon Fatalities Model</h1>
+        <h1 style={{ textAlign: "center", margin: "40px" }}>
+          Annual Novice-Made Bioweapon Fatalities Model
+        </h1>
         <form
           onSubmit={(e) => {
             e.preventDefault();
             refreshPage();
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              maxWidth: "1400px",
-              margin: "0 auto",
-              gap: "40px",
-            }}
-          >
-            {/* Top Parameters Section */}
+          <div>
             <div
               style={{
                 display: "flex",
-                gap: "40px",
-                justifyContent: "center",
-                flexWrap: "wrap",
+                flexDirection: "column",
+                alignItems: "center",
+                width: "100%",
+                // padding: "clamp(0px, 2vw, 20px)"
               }}
             >
-              <div style={{ width: "400px" }}>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  maxWidth: "1400px",
+                  width: "100%",
+                  // margin: "clamp(20px, 5vw, 80px) auto",
+                  gap: "clamp(20px, 4vw, 40px)",
+                }}
+              >
+                <BlueBox>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: width < 768 ? "center" : "flex-end",
+                      width: "100%",
+                    }}
+                  >
+                    <h3
+                      style={{
+                        margin: "0px",
+                        marginTop: "20px",
+                        marginRight: "20px",
+                        color: "#547187",
+                      }}
+                    >
+                      Evidence from expert surveys
+                    </h3>
+                  </div>
+                  <div
+                    className="responsive-container"
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      minHeight: "600px",
+                      backgroundColor: "#e3f2fd",
+                      gap: "40px",
+                      padding: "20px",
+                      width: "100%",
+                      maxWidth: "1400px",
+                      margin: "0 auto",
+                    }}
+                  >
+                    <SuccessGivenEffort
+                      onChange={(params) => {
+                        setBaselineTextFields(params);
+                      }}
+                      data={inputParams.baselineSuccessProbabilityGivenEffort}
+                      initialValues={baselineTextFields}
+                      baselineValues={baselineTextFields}
+                      preMitigationValues={preMitigationTextFields}
+                    />
+                    <EffortCDF
+                      onChange={(params) => {
+                        setInputParams((prev) => ({
+                          ...prev,
+                          effortCDF: generateCDFData(params),
+                        }));
+                        refreshPage();
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flex: 1,
+                        minHeight: "500px",
+                        gap: "20px",
+                        width: "100%",
+                        // margin: "0 auto"
+                      }}
+                    >
+                      <ParameterSelector
+                        inputParams={inputParams}
+                        setInputParams={setInputParams}
+                        refreshPage={refreshPage}
+                      />
+                      <ExpectedAnnualFatalities
+                        titleWord="Baseline"
+                        titleColor="#2ecc71"
+                        expectedAnnualFatalities={
+                          getOutputParams().baselineExpectedAnnualFatalities
+                        }
+                      />
+                    </div>
+                  </div>
+                </BlueBox>
+                {/* Section 2 */}
                 <div
                   style={{
                     display: "flex",
-                    gap: "20px",
+                    flexDirection: "row",
+                    alignItems: "stretch",
                     justifyContent: "center",
+                    width: "100%",
+                    minHeight: "800px",
                   }}
                 >
-                  <div>
-                    <label>Expected Annual Attempts:</label>
-                    <input
-                      type="number"
-                      value={inputParams.expectedAnnualAttempts}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setInputParams((prev) => ({
-                          ...prev,
-                          expectedAnnualAttempts:
-                            value === "" ? "" : parseFloat(value),
-                        }));
+                  <OrangeBox>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "flex-start",
+                        alignItems: "center",
+                        width: "100%",
+                        height: "100%",
+                        gap: "40px",
+                        padding: "40px",
                       }}
-                      onBlur={() => refreshPage()}
-                      style={{ width: "80px", marginLeft: "10px" }}
-                    />
-                  </div>
-                  <div>
-                    <label>Expected Fatalities Per Successful Attempt:</label>
-                    <input
-                      type="number"
-                      value={inputParams.expectedFatalitiesPerSuccessfulAttempt}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setInputParams((prev) => ({
-                          ...prev,
-                          expectedFatalitiesPerSuccessfulAttempt:
-                            value === "" ? "" : parseFloat(value),
-                        }));
+                    >
+                      <h3
+                        style={{
+                          margin: 0,
+                          color: "#AE7926",
+                        }}
+                      >
+                        Evidence from capability evaluations + experts
+                      </h3>
+                    </div>
+                    <SuccessGivenEffort
+                      title="Pre-Mitigation success probability"
+                      onChange={(params) => {
+                        setPreMitigationTextFields(params);
+                        // refreshPage();
                       }}
-                      onBlur={() => refreshPage()}
-                      style={{ width: "120px", marginLeft: "10px" }}
+                      data={
+                        inputParams.preMitigationSuccessProbabilityGivenEffort
+                      }
+                      color="#e74c3c"
+                      initialValues={preMitigationTextFields}
+                      baselineValues={baselineTextFields}
+                      preMitigationValues={preMitigationTextFields}
                     />
-                  </div>
-                  <div>
-                    <label>Queries Per Month:</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={inputParams.queriesAttackerExecutesPerMonth}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setInputParams((prev) => ({
-                          ...prev,
-                          queriesAttackerExecutesPerMonth:
-                            value === "" ? "" : parseInt(value, 10),
-                        }));
+                    <ExpectedAnnualFatalities
+                      titleWord="Pre-Mitigation"
+                      titleColor="#e74c3c"
+                      expectedAnnualFatalities={
+                        getOutputParams().preMitigationExpectedAnnualFatalities
+                      }
+                    />
+                  </OrangeBox>
+                  <PurpleBox>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "flex-start",
+                        alignItems: "center",
+                        width: "100%",
+                        height: "100%",
+                        gap: "40px",
+                        // padding: "40px",
                       }}
-                      onBlur={() => refreshPage()}
-                      style={{ width: "80px", marginLeft: "10px" }}
+                    >
+                      <h3
+                        style={{
+                          margin: "40px",
+                          color: "#59095E",
+                        }}
+                      >
+                        Evidence from safeguards evaluations
+                      </h3>
+                    </div>
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gridTemplateRows: "1fr 1fr",
+                        gap: "40px",
+                        width: "100%",
+                        height: "100%",
+                        padding: "40px",
+                      }}
+                    >
+                      <Card>
+                        <QueriesVsTime
+                          queriesPerMonth={
+                            inputParams.queriesAttackerExecutesPerMonth
+                          }
+                          onMouseUp={(data) => {
+                            // Get all time points at once using the efficient version
+                            const timeForQueries = fitQueriesCurve(data);
+                            const baselineCurve =
+                              generateCurvePoints(baselineTextFields);
+                            const preMitigationCurve = generateCurvePoints(
+                              preMitigationTextFields
+                            );
+                            const updatedParams = {
+                              ...inputParams,
+                              timeToExecuteQueries: timeForQueries,
+                              baselineSuccessProbabilityGivenEffort:
+                                baselineCurve,
+                              preMitigationSuccessProbabilityGivenEffort:
+                                preMitigationCurve,
+                            };
+                            setInputParams(updatedParams);
+                          }}
+                        />
+                      </Card>
+                      <Card>
+                        <QueriesVsTimeWithBans
+                          timeToExecuteQueries={
+                            inputParams.timeToExecuteQueries
+                          }
+                          bansGivenQueries={inputParams.bansVsQueries}
+                          timeLostGivenBans={inputParams.timeLostToBans}
+                        />
+                      </Card>
+                      <Card>
+                        <BansVsQueries
+                          queriesPerMonth={
+                            inputParams.queriesAttackerExecutesPerMonth
+                          }
+                          onMouseUp={(data) => {
+                            // get the full ban curve
+                            const bansVsQueries = getBansForQueries(data);
+                            setInputParams((prev) => ({
+                              ...prev,
+                              bansVsQueries: bansVsQueries,
+                            }));
+                          }}
+                        />
+                      </Card>
+                      <Card>
+                        <TimeLostToBans
+                          onMouseUp={(data) => {
+                            const timeLostTobans = getTimeLostGivenBans(data);
+                            setInputParams((prev) => ({
+                              ...prev,
+                              timeLostToBans: timeLostTobans,
+                            }));
+                          }}
+                        />
+                      </Card>
+                    </div>
+                    <ExpectedAnnualFatalities
+                      titleWord="Post-Mitigation"
+                      titleColor="#3498DB"
+                      expectedAnnualFatalities={
+                        getOutputParams().postMitigationExpectedAnnualFatalities
+                      }
                     />
-                  </div>
+                  </PurpleBox>
                 </div>
-              </div>
-            </div>
-
-            <EffortCDF
-              onChange={(params) => {
-                setInputParams((prev) => ({
-                  ...prev,
-                  effortCDF: generateCDFData(params),
-                }));
-                refreshPage();
-              }}
-            />
-            {/* Main Columns */}
-            <div
-              style={{ display: "flex", gap: "40px", justifyContent: "center" }}
-            >
-              {/* Left Column */}
-              <div
-                style={{
-                  width: "400px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "30px",
-                }}
-              >
-                <h2
+                <div
                   style={{
-                    margin: "0 0 20px 0",
-                    width: "100%",
-                    maxWidth: "500px",
-                    textAlign: "center",
+                    width: "400px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "30px",
                   }}
                 >
-                  Baseline
-                </h2>
-                <SuccessGivenEffort
-                  onChange={(params) => {
-                    setBaselineTextFields(params);
-                  }}
-                  data={inputParams.baselineSuccessProbabilityGivenEffort}
-                  initialValues={baselineTextFields}
-                  baselineValues={baselineTextFields}
-                  preMitigationValues={preMitigationTextFields}
-                />
+                  <h2
+                    style={{
+                      margin: "0 0 20px 0",
+                      width: "100%",
+                      maxWidth: "500px",
+                      textAlign: "center",
+                    }}
+                  >
+                    Pre-Mitigation Deployment
+                  </h2>
 
-                <ExpectedAnnualFatalities
-                  expectedAnnualFatalities={
-                    getOutputParams().baselineExpectedAnnualFatalities
-                  }
-                />
-              </div>
-
-              {/* Right Column */}
-              <div
-                style={{
-                  width: "400px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "30px",
-                }}
-              >
-                <h2
+                  <div style={{ textAlign: "center", width: "100%" }}></div>
+                </div>
+                Query Time Plot
+                <div
                   style={{
-                    margin: "0 0 20px 0",
-                    width: "100%",
-                    maxWidth: "500px",
-                    textAlign: "center",
+                    width: "400px",
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    gap: "30px",
                   }}
                 >
-                  Pre-Mitigation Deployment
-                </h2>
-                <SuccessGivenEffort
-                  onChange={(params) => {
-                    setPreMitigationTextFields(params);
-                    // refreshPage();
-                  }}
-                  data={inputParams.preMitigationSuccessProbabilityGivenEffort}
-                  color="#e74c3c"
-                  initialValues={preMitigationTextFields}
-                  baselineValues={baselineTextFields}
-                  preMitigationValues={preMitigationTextFields}
-                />
+                  <h2
+                    style={{
+                      margin: "0 0 20px 0",
+                      width: "100%",
+                      maxWidth: "500px",
+                      textAlign: "center",
+                    }}
+                  >
+                    Post mitigation
+                  </h2>
 
-                <div style={{ textAlign: "center", width: "100%" }}>
+                  <ComparisonSuccessGivenEffort
+                    data={
+                      getOutputParams()
+                        .postMitigationSuccessProbabilityGivenEffort
+                    }
+                    baselineData={
+                      inputParams.baselineSuccessProbabilityGivenEffort
+                    }
+                    readOnly={true}
+                    title="Success Probability Comparison"
+                    submittedValues={preMitigationTextFields}
+                  />
                   <ExpectedAnnualFatalities
                     expectedAnnualFatalities={
-                      getOutputParams().preMitigationExpectedAnnualFatalities
+                      getOutputParams().postMitigationExpectedAnnualFatalities
                     }
                   />
                 </div>
               </div>
 
-              {/* Query Time Plot */}
               <div
                 style={{
-                  width: "400px",
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: "30px",
+                  justifyContent: "center",
+                  marginTop: "40px",
+                  marginBottom: "20px",
                 }}
               >
-                <h2
+                <button
+                  onClick={() => refreshPage()}
+                  type="button"
                   style={{
-                    margin: "0 0 20px 0",
-                    width: "100%",
-                    maxWidth: "500px",
-                    textAlign: "center",
+                    padding: "12px 24px",
+                    backgroundColor: "#4CAF50",
+                    color: "white",
+                    border: "none",
+                    borderRadius: "4px",
+                    cursor: "pointer",
+                    width: "200px",
+                    fontSize: "16px",
                   }}
                 >
-                  Post mitigation
-                </h2>
-
-                <QueriesVsTimeWithBans
-                  timeToExecuteQueries={inputParams.timeToExecuteQueries}
-                  bansGivenQueries={inputParams.bansVsQueries}
-                  timeLostGivenBans={inputParams.timeLostToBans}
-                />
-
-                <QueriesVsTime
-                  queriesPerMonth={inputParams.queriesAttackerExecutesPerMonth}
-                  onMouseUp={(data) => {
-                    // Get all time points at once using the efficient version
-                    const timeForQueries = fitQueriesCurve(data);
-                    const baselineCurve =
-                      generateCurvePoints(baselineTextFields);
-                    const preMitigationCurve = generateCurvePoints(
-                      preMitigationTextFields
-                    );
-                    const updatedParams = {
-                      ...inputParams,
-                      timeToExecuteQueries: timeForQueries,
-                      baselineSuccessProbabilityGivenEffort: baselineCurve,
-                      preMitigationSuccessProbabilityGivenEffort:
-                        preMitigationCurve,
-                    };
-                    setInputParams(updatedParams);
-                  }}
-                />
-
-                <ComparisonSuccessGivenEffort
-                  data={
-                    getOutputParams()
-                      .postMitigationSuccessProbabilityGivenEffort
-                  }
-                  baselineData={
-                    inputParams.baselineSuccessProbabilityGivenEffort
-                  }
-                  readOnly={true}
-                  title="Success Probability Comparison"
-                  submittedValues={preMitigationTextFields}
-                />
-                <BansVsQueries
-                  queriesPerMonth={inputParams.queriesAttackerExecutesPerMonth}
-                  onMouseUp={(data) => {
-                    // get the full ban curve
-                    const bansVsQueries = getBansForQueries(data);
-                    setInputParams((prev) => ({
-                      ...prev,
-                      bansVsQueries: bansVsQueries,
-                    }));
-                  }}
-                />
-                <TimeLostToBans
-                  onMouseUp={(data) => {
-                    const timeLostTobans = getTimeLostGivenBans(data);
-                    setInputParams((prev) => ({
-                      ...prev,
-                      timeLostToBans: timeLostTobans,
-                    }));
-                  }}
-                />
-                <ExpectedAnnualFatalities
-                  expectedAnnualFatalities={
-                    getOutputParams().postMitigationExpectedAnnualFatalities
-                  }
-                />
+                  Refresh
+                </button>
               </div>
-            </div>
-
-            {/* {error.message && (
-              <div
-                style={{
-                  color: "red",
-                  textAlign: "left",
-                  marginTop: "20px",
-                  padding: "20px",
-                  backgroundColor: "#ffebee",
-                  borderRadius: "4px",
-                  maxWidth: "800px",
-                  margin: "20px auto",
-                }}
-              >
-                <div style={{ fontWeight: "bold", marginBottom: "10px" }}>
-                  {error.message}
-                </div>
-                {error.stack && (
-                  <pre
-                    style={{
-                      whiteSpace: "pre-wrap",
-                      fontSize: "12px",
-                      backgroundColor: "#fff",
-                      padding: "10px",
-                      borderRadius: "4px",
-                      overflow: "auto",
-                      maxHeight: "200px",
-                    }}
-                  >
-                    {error.stack}
-                  </pre>
-                )}
-              </div>
-            )} */}
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                marginTop: "40px",
-                marginBottom: "20px",
-              }}
-            >
-              <button
-                onClick={() => refreshPage()}
-                type="button"
-                style={{
-                  padding: "12px 24px",
-                  backgroundColor: "#4CAF50",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  width: "200px",
-                  fontSize: "16px",
-                }}
-              >
-                Refresh
-              </button>
             </div>
           </div>
         </form>

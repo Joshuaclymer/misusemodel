@@ -36,3 +36,33 @@
     transform: rotate(360deg);
   }
 }
+
+.responsive-container {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  width: 100%;
+  gap: 3%;
+  padding: 2%;
+  box-sizing: border-box;
+}
+
+.responsive-container > * {
+  flex: 1;
+  min-width: 0;
+}
+
+@media screen and (max-width: 1200px) {
+  .responsive-container {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .responsive-container > * {
+    width: 100%;
+    max-width: 600px;
+  }
+}

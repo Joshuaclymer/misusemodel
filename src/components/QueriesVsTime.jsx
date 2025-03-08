@@ -172,11 +172,21 @@ const fitQueriesCurve = (() => {
 })();
 
 const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
-  // State for managing the data
+  const [plotWidth, setPlotWidth] = useState(Math.min(350, window.innerWidth - 40));
+  const plotMargin = { top: 40, right: 40, left: 0, bottom: 40 };
+  const plotHeight = 350;
   const [queryTimeData, setTimeQueriesData] = useState([]);
   const [interpolatedData, setInterpolatedData] = useState([]);
   const [interpolatedTangent, setInterpolatedTangent] = useState([]);
   const [draggedPointIndex, setDraggedPointIndex] = useState(null);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPlotWidth(Math.min(plotWidth, window.innerWidth - 40));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Initialize data
   useEffect(() => {
@@ -223,12 +233,11 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
       if (!svgElement) return;
 
       const svgRect = svgElement.getBoundingClientRect();
-      const margin = { left: 50, right: 50, top: 5, bottom: 25 };
-      const width = 400 - margin.left - margin.right;
-      const height = 350 - margin.top - margin.bottom;
+      const width = plotWidth - plotMargin.left - plotMargin.right;
+      const height = plotHeight - plotMargin.top - plotMargin.bottom;
 
-      const mouseX = event.clientX - svgRect.left - margin.left;
-      const mouseY = event.clientY - svgRect.top - margin.top;
+      const mouseX = event.clientX - svgRect.left - plotMargin.left;
+      const mouseY = event.clientY - svgRect.top - plotMargin.top;
 
       const xScale = d3.scaleLinear().domain([0, 45]).range([0, width]);
       const maxQueries = 45 * (queriesPerMonth / 30); // Convert days to months for query calculation
@@ -315,23 +324,13 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   };
 
   return (
-    <div
-      style={{
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}
-    >
-      <h3 style={{ textAlign: "center", marginBottom: "20px" }}>
-        Queries vs Time
-      </h3>
       <LineChart
         className="query-queries-chart"
-        width={400}
-        height={350}
-        margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
+        width={plotWidth}
+        height={plotHeight}
+        margin={plotMargin}
         data={queryTimeData}
+        textAnchor="start"
       >
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis
@@ -342,19 +341,23 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
           ticks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45]}
           tickFormatter={(value) => value}
           label={{
-            value: "Time spent by red team (days)",
+            value: "Time (months)",
             position: "bottom",
-            offset: 20,
+            offset: 0,
+            style: { fontSize: 12 }
           }}
+          tick={{ fontSize: 12 }}
         />
         <YAxis
-          domain={[0, 45 * (queriesPerMonth / 30)]}
+          domain={[0, 45]}
           label={{
-            value: "Average Number of queries Executed",
+            value: "Queries",
             angle: -90,
             position: "center",
-            dx: -35,
+            // dx: -35,
+            style: { fontSize: 12 }
           }}
+          tick={{ fontSize: 12 }}
         />
 
         {/* Tangent line */}
@@ -372,7 +375,7 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
           type="monotoneX"
           dataKey="queries"
           stroke="#3498db"
-          name="Original"
+          name={<span style={{ fontSize: 12 }}>Original</span>}
           strokeWidth={2}
           dot={(props) => {
             const { cx, cy, index, payload } = props;
@@ -416,7 +419,6 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
           dot={false}
         /> */}
       </LineChart>
-    </div>
   );
 };
 

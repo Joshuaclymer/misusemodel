@@ -186,9 +186,9 @@ const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
       if (!svgElement) return;
 
       const svgRect = svgElement.getBoundingClientRect();
-      const margin = { left: 50, right: 50, top: 5, bottom: 25 };
-      const width = 400 - margin.left - margin.right;
-      const height = 350 - margin.top - margin.bottom;
+      const margin = { left: 40, right: 30, top: 5, bottom: 20 };
+      const width = 300 - margin.left - margin.right;
+      const height = 250 - margin.top - margin.bottom;
 
       const mouseX = event.clientX - svgRect.left - margin.left;
       const mouseY = event.clientY - svgRect.top - margin.top;
@@ -300,9 +300,9 @@ const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
       </h3>
       <LineChart
         className="query-queries-chart"
-        width={400}
-        height={350}
-        margin={{ top: 5, right: 50, left: 50, bottom: 25 }}
+        width={300}
+        height={250}
+        margin={{ top: 5, right: 30, left: 40, bottom: 20 }}
         data={queryTimeData}
       >
         <CartesianGrid strokeDasharray="3 3" />
