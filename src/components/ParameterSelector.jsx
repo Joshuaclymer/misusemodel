@@ -26,10 +26,21 @@ const ParameterSelector = ({ inputParams, setInputParams, refreshPage }) => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                gap: "15px"
+                gap: "15px",
+                minWidth: 0
             }}
             >
-            <label style={{ fontSize: "12px", fontWeight: "500", color: "#1a2a3a", flex: 1, textAlign: "left" }}>Expected Annual Attempts:</label>
+            <label style={{ fontSize: "12px", fontWeight: "500", color: "#1a2a3a", width: "220px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ whiteSpace: "nowrap" }}>
+              Expected Annual Attempts
+              </span>
+              <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+                i
+                <span className="tooltip">
+                The number of annual novice attempts to develop a Pandemic Potential Pathogen. An "attempt" must involve at least two weeks of earnest effort.
+                </span>
+              </div>
+            </label>
             <input
                 type="number"
                 value={inputParams.expectedAnnualAttempts}
@@ -62,10 +73,21 @@ const ParameterSelector = ({ inputParams, setInputParams, refreshPage }) => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                gap: "15px"
+                gap: "15px",
+                minWidth: 0
             }}
             >
-            <label style={{ fontSize: "12px", fontWeight: "500", color: "#1a2a3a", flex: 1, textAlign: "left" }}>Expected Fatalities Per Success:</label>
+            <label style={{ fontSize: "12px", fontWeight: "500", color: "#1a2a3a", width: "220px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ whiteSpace: "nowrap" }}>
+              Expected Fatalities Per Success
+              </span>
+              <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+                i
+                <span className="tooltip">
+                  The number of expected fatalities if an novice attempt succeeds and results in the deployment of a Pandemic Potential Pathogen.
+                </span>
+              </div>
+            </label>
             <input
                 type="number"
                 value={inputParams.expectedFatalitiesPerSuccessfulAttempt}
@@ -98,10 +120,21 @@ const ParameterSelector = ({ inputParams, setInputParams, refreshPage }) => {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                gap: "15px"
+                gap: "15px",
+                minWidth: 0
             }}
             >
-            <label style={{ fontSize: "12px", fontWeight: "500", color: "#1a2a3a", flex: 1, textAlign: "left" }}>Queries Per Month:</label>
+            <label style={{ fontSize: "12px", fontWeight: "500", color: "#1a2a3a", width: "220px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}>
+              <span style={{ whiteSpace: "nowrap" }}>
+              Queries Per Month
+              </span>
+              <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+                i
+                <span className="tooltip">
+                  The number of queries to the AI assistant that a novice bio misuse actor would benefit from per month if given access to the unmitigated AI assistant. We assume that the benefit of executing queries above this frequency quickly trails off.
+                </span>
+              </div>
+            </label>
             <input
                 type="number"
                 min="0"

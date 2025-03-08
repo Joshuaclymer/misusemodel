@@ -156,7 +156,7 @@ const fitBanCurveWithCache = (
   return Array.from({ length: 1001 }, (_, i) => getTimeForQuery(i));
 };
 
-const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
+const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange, tooltipDescription = "During the safeguards evaluation, the developer keeps track of the number of times the system 'bans' a member of the red team. The figure below shows the average number of bans a member of the red team receives as a function of the number of harmful queries they successfully execute (receive nearly-complete responses to)." }) => {
   // Refs for caching and DOM elements
   const pathCache = useRef({ points: null, path: null, length: null });
   const timeInterpolatorCache = useRef({ points: null, interpolator: null });
@@ -326,8 +326,14 @@ const BansVsQueries = ({ onMouseUp, queriesPerMonth = 30, onChange }) => {
 
   return (
     <div ref={svgRef}>
-      <h4 style={{ fontSize: 14, fontWeight: 500 }}>
-        Bans vs Queries Executed
+      <h4 style={{ fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', width: '100%' }}>
+        <span>Bans vs Queries Executed</span>
+        <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+          i
+          <span className="tooltip">
+            {tooltipDescription}
+          </span>
+        </div>
       </h4>
       <LineChart
         className="query-queries-chart"

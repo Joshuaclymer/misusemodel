@@ -171,7 +171,7 @@ const fitQueriesCurve = (() => {
   };
 })();
 
-const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
+const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30, tooltipDescription = "Plot showing the number of queries executed over time while attempting to jailbreak" }) => {
   const [plotWidth, setPlotWidth] = useState(Math.min(300, window.innerWidth - 40));
   const plotMargin = { top: 10, right: 40, left: 0, bottom: 30 };
   const plotHeight = 260;
@@ -330,8 +330,16 @@ const TimeVsQueries = ({ onMouseUp, queriesPerMonth = 30 }) => {
   };
 
   return (
-      <div style={{ position: 'relative' }}>
-        <h4 style={{ fontSize: 14, fontWeight: 500 }}>Queries executed vs effort</h4>
+      <div style={{ position: 'relative', width: '100%' }}>
+        <h4 style={{ fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', width: '100%' }}>
+          <span>Queries executed vs effort</span>
+          <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+            i
+            <span className="tooltip">
+              {tooltipDescription}
+            </span>
+          </div>
+        </h4>
         {showDragHint && (
           <div 
             className="drag-me-hint"

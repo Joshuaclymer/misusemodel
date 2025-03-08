@@ -15,6 +15,7 @@ const QueriesVsTimeWithBans = ({
   timeToExecuteQueries, // timeToExecuteQueries
   bansGivenQueries, // from BansVsQueries
   timeLostGivenBans = [], // from TimeLostToBans
+  tooltipDescription = "This plot synthesizes the other three plots. It shows the number of bio misuse queries members of the red team obtain responses to over time, factoring in the additional time that a real misuse actor would lose due to being repeatedly banned."
 }) => {
   let timeToExecuteQueriesDisplayed = calculateTimeToExecuteQueriesGivenBans({
     bansGivenQueries,
@@ -100,8 +101,14 @@ const QueriesVsTimeWithBans = ({
 
   return (
     <div>
-      <h4 style={{ fontSize: 14, fontWeight: 500 }}>
-        Queries executed vs effort (w/ bans)
+      <h4 style={{ fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', width: '100%' }}>
+        <span>Queries executed vs effort (w/ bans)</span>
+        <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+          i
+          <span className="tooltip">
+            {tooltipDescription}
+          </span>
+        </div>
       </h4>
       <LineChart
         className="query-queries-chart"

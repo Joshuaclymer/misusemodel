@@ -51,7 +51,7 @@ const ANCHOR_MONTHS = [3, 12, 36];
 //   return points;
 // };
 
-const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Success Probability', hideLabels = false, initialValues, color = '#2ecc71', baselineValues, preMitigationValues }) => {
+const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Success Probability', hideLabels = false, initialValues, color = '#2ecc71', baselineValues, preMitigationValues, tooltipDescription = "These parameters control the probability of an attacker succeeding at different points in time. Each parameter represents the probability of success after a specific number of months of effort." }) => {
   const [width, setWidth] = useState(Math.min(400, window.innerWidth - 40));
 
   useEffect(() => {
@@ -127,7 +127,11 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
       }}>
       {!readOnly && (
         <>
-          <FormContainer title={title} style={{ fontSize: "12px", padding: "10px" }}>
+          <FormContainer 
+            title={title} 
+            style={{ fontSize: "12px", padding: "10px" }}
+            tooltipDescription={tooltipDescription}>
+
             {ANCHOR_MONTHS.map((month, index) => (
               <FormField
                 key={month}
@@ -164,7 +168,7 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
             type="number"
             ticks={[0.1, 1, 3, 6, 12, 24, 36, maxTimeMonths]}
             label={{
-              value: "Months (log scale)",
+              value: "Months spent on attempt (log scale)",
               position: "bottom",
               offset: 20,
               style: { fontSize: 12 }
@@ -176,7 +180,7 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
             domain={[0, maxY]}
             tickFormatter={(value) => Number(value.toPrecision(2))}
             label={{
-              value: "Success Probability",
+              value: "Success Probability of Attempt",
               angle: -90,
               position: "center",
               dx: -35,

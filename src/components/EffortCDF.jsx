@@ -121,7 +121,10 @@ const EffortCDF = ({ onChange }) => {
         boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)"
       }}
     >
-      <FormContainer title="Effort Distribution Parameters">
+      <FormContainer 
+        title="Effort Distribution Parameters"
+        tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to develop a Pandemic Potential Pathogen will involve less than or equal to the amount of time indicated. An 'attempt' must involve at least two weeks of earnest effort. We assume this distribution is fixed and is unaffected by the deployment of the AI assistant."
+      >
         {ANCHOR_MONTHS.slice(0, 3).map((month, index) => (
           <FormField
             key={month}
@@ -152,7 +155,7 @@ const EffortCDF = ({ onChange }) => {
             domain={["auto", "auto"]}
             type="number"
             label={{
-              value: "Months (log scale)",
+              value: "Months spent on attempt (log scale)",
               position: "bottom",
               offset: 20,
               style: { fontSize: 12 }
@@ -164,7 +167,7 @@ const EffortCDF = ({ onChange }) => {
             domain={[0, 1]}
             tickFormatter={(value) => Number(value.toPrecision(2))}
             label={{
-              value: "Cumulative Probability",
+              value: "Cumulative Probability of Attempt Effort",
               angle: -90,
               position: "center",
               dx: -35,

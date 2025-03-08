@@ -154,7 +154,7 @@ const fitBanCurveWithCache = (
   return Array.from({ length: 1001 }, (_, i) => getTimeForQuery(i));
 };
 
-const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
+const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30, tooltipDescription = "This plot is estimated by experts. It shows the amount of time a novice bio misuse actor would likely need to spend to reacquire access to the AI assistant after being banned." }) => {
   // Refs for caching and DOM elements
   const pathCache = useRef({ points: null, path: null, length: null });
   const timeInterpolatorCache = useRef({ points: null, interpolator: null });
@@ -299,8 +299,14 @@ const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30 }) => {
 
   return (
     <div ref={svgRef}>
-      <h4 style={{ fontSize: 14, fontWeight: 500 }}>
-        Time lost to bans
+      <h4 style={{ fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center', width: '100%' }}>
+        <span>Time lost to bans</span>
+        <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+          i
+          <span className="tooltip">
+            {tooltipDescription}
+          </span>
+        </div>
       </h4>
       <LineChart
         className="query-queries-chart"

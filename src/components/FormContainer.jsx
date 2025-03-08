@@ -1,6 +1,6 @@
 import React from 'react';
 
-const FormContainer = ({ title, children }) => {
+const FormContainer = ({ title, children, tooltipDescription }) => {
   return (
     <div style={{ 
       display: "flex", 
@@ -10,14 +10,27 @@ const FormContainer = ({ title, children }) => {
       width: "fit-content" 
     }}>
       <h4 style={{ 
-        textAlign: "left", 
+        textAlign: "center", 
         marginBottom: "10px", 
         marginTop: "0px", 
         fontSize: "14px", 
         color: "#1a2a3a", 
-        fontWeight: "500" 
+        fontWeight: "500",
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        justifyContent: 'center',
+        width: '100%'
       }}>
-        {title}
+        <span>{title}</span>
+        {tooltipDescription && (
+          <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+            i
+            <span className="tooltip">
+              {tooltipDescription}
+            </span>
+          </div>
+        )}
       </h4>
       <div style={{
         display: "flex",

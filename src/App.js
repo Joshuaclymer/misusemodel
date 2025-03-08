@@ -151,6 +151,7 @@ function App() {
   };
 
   let showArrows = width >= 1200;
+  // let showArrows = true;
 
   return (
     <div className="App">
@@ -158,6 +159,20 @@ function App() {
         <h1 style={{ textAlign: "center", margin: "40px" }}>
           Interactive AI biological misuse risk model
         </h1>
+        <div style={{ 
+          textAlign: "center", 
+          maxWidth: "600px", 
+          width: "90%", 
+          color: "grey", 
+          display: "inline-block", 
+          margin: "0 auto 40px"
+        }}>
+          <p>The following is an interactive model of AI biorisks described in the research paper "A
+          Safety Case Sketch for Evaluating Safeguards Against AI-Enabled
+          Bioterrorism." The model leverages evidence from <span style={{ fontWeight: "bold" , color: "#1A4F76"}}>expert surveys</span>, <span style={{ fontWeight: "bold" , color: "#AF7B29"}}>capability evaluations</span>, and <span style={{ fontWeight: "bold" , color: "#59095E"}}>safeguards evaluations</span> to estimate the annual expected fatalities caused by pandemic pathogens developed by novices with the help of a particular AI assistant. 
+          <span style={{ fontWeight: "bold" , color: "black"}}> All of these parameters are illustrative and in practice would need to be specified with real data and expert input. </span> Biorisk is a concrete application of this model, but the model can also be applied to other AI misuse risks.
+          </p>
+        </div>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -198,7 +213,7 @@ function App() {
                           margin: "0px",
                           marginTop: "30px",
                           marginBottom: "10px",
-                          color: "#113A58",
+                          color: "#1A4F76",
                         }}
                       >
                         Evidence from expert surveys
@@ -243,6 +258,7 @@ function App() {
                             initialValues={baselineTextFields}
                             baselineValues={baselineTextFields}
                             preMitigationValues={preMitigationTextFields}
+                            tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to develop a Pandemic Potential Pathogen will succeed given varying levels of time spent, where an 'attempt' must involve at least two weeks of earnest effort. This curve assumes conditions *prior to the deployment of the AI assistant in question.*"
                           />
                         </div>
                       </ArcherElement>
@@ -400,7 +416,7 @@ function App() {
                           <h3
                             style={{
                               margin: 0,
-                              color: "#765117",
+                              color: "#AF7B29",
                             }}
                           >
                             Evidence from capability evaluations + experts
@@ -456,6 +472,7 @@ function App() {
                                 initialValues={preMitigationTextFields}
                                 baselineValues={baselineTextFields}
                                 preMitigationValues={preMitigationTextFields}
+                                tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to develop a Pandemic Potential Pathogen will succeed given varying levels of time spent, where an 'attempt' must involve at least two weeks of earnest effort. This curve assumes conditions where the AI assistant in question is deployed *without safeguards.*"
                               />
                             </div>
                           </ArcherElement>
@@ -611,6 +628,7 @@ function App() {
                                 queriesPerMonth={
                                   inputParams.queriesAttackerExecutesPerMonth
                                 }
+                                tooltipDescription="The results of a safeguards evaluation. A red team tries to obtain responses from an AI assistant to a representative set of bio misuse queries. The y-axis shows the average number of queries executed by members of the red team as a function of effort expended."
                                 onMouseUp={(data) => {
                                   // Get all time points at once using the efficient version
                                   const timeForQueries = fitQueriesCurve(data);
@@ -785,6 +803,25 @@ function App() {
           </div>
         </form>
       </div>
+      <div style={{ 
+        textAlign: "center", 
+        maxWidth: "600px", 
+        width: "90%", 
+        display: "inline-block", 
+        margin: "20px auto",
+        padding: "0 20px"
+      }}>
+        <h3>A formal description of the model:</h3>
+        <img 
+          src="biomodel.png" 
+          alt="Model Description" 
+          style={{
+            width: "100%",
+            height: "auto",
+            maxWidth: "100%"
+          }}
+        />
+      </div>
       {/* Footer */}
       <div
         style={{
@@ -793,12 +830,11 @@ function App() {
           paddingTop: "40px",
           paddingBottom: "40px",
           backgroundColor: "#FBFBFB",
+          color: "grey"
         }}
       >
         <p>
-          This site was created by Joshua Clymer for the research paper "A
-          Safety Case Sketch for Evaluating Safeguards Against AI-Enabled
-          Bioterrorism."
+          Joshua Clymer, March 8, 2025.
         </p>
       </div>
     </div>

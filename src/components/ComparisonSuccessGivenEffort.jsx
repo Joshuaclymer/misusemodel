@@ -45,7 +45,7 @@ const generateData = (parameters) => {
   return points;
 };
 
-const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, title = 'Success Probability Parameters', submittedValues }) => {
+const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, submittedValues, tooltipDescription = "The distribution below shows the probability that a novice attempt to synthesize a Pandemic Potential Pathogen succeeds given the amount of time spent on the attempt. The solid blue line shows the post-mitigation success probability, while the dashed lines show the baseline and pre-mitigation probabilities for comparison." }) => {
   const [width, setWidth] = useState(Math.min(600, window.innerWidth - 40));
 
   useEffect(() => {
@@ -91,10 +91,29 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
         marginTop: "clamp(3px, 0.5vw, 5px)",
         marginBottom: "clamp(5px, 1vw, 10px)"
       }}>
+      <h4 style={{ 
+        fontSize: 14, 
+        fontWeight: 500, 
+        display: 'flex', 
+        alignItems: 'center', 
+        marginTop: "35px",
+        gap: '6px', 
+        justifyContent: 'center', 
+        width: '100%', 
+        margin: '0 0 10px 0' 
+      }}>
+        <span>Post-mitigation success probability</span>
+        <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
+          i
+          <span className="tooltip">
+            {tooltipDescription}
+          </span>
+        </div>
+      </h4>
       <LineChart
         width={width}
         height={425}
-        margin={{ top: 40, right: 40, left: 40, bottom: 40 }}
+        margin={{ top: 5, right: 40, left: 40, bottom: 40 }}
         data={chartData}
       >
         <CartesianGrid strokeDasharray="3 3" />
@@ -106,7 +125,7 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
           ticks={[0.1, 1.0, 3.0, 12.0, maxTimeMonths]}
           tickFormatter={(value) => value.toFixed(1)}
           label={{
-            value: "Time spent by attacker (months)",
+            value: "Months spent on attempt (log scale)",
             position: "center",
             dy: 25,
           }}
@@ -115,7 +134,7 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
           domain={[0, (dataMax) => Math.max(0.2, dataMax)]}
           tickFormatter={(value) => Number(value.toPrecision(2))}
           label={{
-            value: "Success Probability",
+            value: "Success Probability of Attempt",
             angle: -90,
             position: "center",
             dx: -35,
