@@ -22,11 +22,34 @@ import {
 // Maximum time in months for pre-mitigation and baseline curves
 export const maxTimeMonths = 60; // 60 months
 
+const initialTimeToExecuteQueries = [
+  { time: 0, queries: 0, fixed: true },
+  { time: 22.5, queries: 10 }, // Middle point slightly above the diagonal
+  { time: 45, queries: 45 }, // End at max x,y
+];
+
+const initialBansVsQueries = [
+  { time: 0, queries: 0, fixed: true },
+  { time: 20, queries: 19 }, // Middle point slightly above the diagonal
+  { time: 45, queries: 30 }, // End at max x,y
+];
+
+const initialTimeLostToBans = [
+  { time: 0, queries: 0, fixed: true }, // Fixed starting point
+  { time: 5, queries: 1 }, // First control point
+  { time: 15, queries: 3 }, // Middle point
+  { time: 45, queries: 3.2 }, // End point
+];
+
+const initialEffortPoints = {
+  effortanch1: 90,
+  effortanch2: 95,
+  effortanch3: 98,
+};
+
 function App() {
   const [error, setError] = useState({ message: "", stack: "" });
 
-  // Input parameters
-  // Initialize baseline and pre-mitigation text fields
   const [baselineTextFields, setBaselineTextFields] = useState({
     successanch1: 0.1,
     successanch2: 3,
@@ -36,107 +59,70 @@ function App() {
   const [preMitigationTextFields, setPreMitigationTextFields] = useState({
     successanch1: 0.1,
     successanch2: 3,
-    successanch3: 10,
+    successanch3: 20,
   });
 
-  // Initialize input parameters
+  // Initialize input parameters with computed values right away
   const [inputParams, setInputParams] = useState({
-    baselineSuccessProbabilityGivenEffort: [],
-    preMitigationSuccessProbabilityGivenEffort: [],
-    timeToExecuteQueries: [],
-    effortCDF: [],
+    baselineSuccessProbabilityGivenEffort:
+      generateCurvePoints(baselineTextFields),
+    preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(
+      preMitigationTextFields
+    ),
+    timeToExecuteQueries: fitQueriesCurve(initialTimeToExecuteQueries),
+    banCurve: getBanCurve(initialBansVsQueries),
+    bansVsQueries: getBansForQueries(initialBansVsQueries),
+    timeLostToBans: getTimeLostGivenBans(initialTimeLostToBans),
     expectedFatalitiesPerSuccessfulAttempt: 1000000,
     expectedAnnualAttempts: 5,
+    effortCDF: generateCDFData(initialEffortPoints),
     queriesAttackerExecutesPerMonth: 30,
-    banCurve: [],
-    bansVsQueries: [],
   });
 
-  // Initialize data on mount
+  // Update input params when text fields change
   useEffect(() => {
-    const initialTimeToExecuteQueries = [
-      { time: 0, queries: 0, fixed: true },
-      { time: 22.5, queries: 10 }, // Middle point slightly above the diagonal
-      { time: 45, queries: 45 }, // End at max x,y
-    ];
-
-    const initialBansVsQueries = [
-      { time: 0, queries: 0, fixed: true },
-      { time: 20, queries: 19 }, // Middle point slightly above the diagonal
-      { time: 45, queries: 30 }, // End at max x,y
-    ];
-
-    const initialTimeLostToBans = [
-      { time: 0, queries: 0, fixed: true }, // Fixed starting point
-      { time: 5, queries: 1 }, // First control point
-      { time: 15, queries: 3 }, // Middle point
-      { time: 45, queries: 3.2 }, // End point
-    ];
-
-    const initialEffortPoints = {
-      effortanch1: 90,
-      effortanch2: 95,
-      effortanch3: 98,
-    };
-
-    const initialParams = {
-      baselineSuccessProbabilityGivenEffort:
-        generateCurvePoints(baselineTextFields),
-      preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(
-        preMitigationTextFields
-      ),
-      timeToExecuteQueries: fitQueriesCurve(initialTimeToExecuteQueries),
-      banCurve: getBanCurve(initialBansVsQueries),
-      bansVsQueries: getBansForQueries(initialBansVsQueries),
-      timeLostToBans: getTimeLostGivenBans(initialTimeLostToBans),
-      expectedFatalitiesPerSuccessfulAttempt: 1000000,
-      expectedAnnualAttempts: 5,
-      effortCDF: generateCDFData(initialEffortPoints),
-      queriesAttackerExecutesPerMonth: 30,
-    };
-
-    setInputParams(initialParams);
-
-    // Run model with initial data
-    try {
-      const initialOutputParams = runModel(initialParams);
-      setOutputParams(initialOutputParams);
-    } catch (e) {
-      setError({ message: e.message, stack: e.stack });
-    }
-  }, []); // Empty dependency array since this is initialization code
-
-  // Output parameters
-  const [outputParams, setOutputParams] = useState({
-    postMitigationSuccessProbabilityGivenEffort: [],
-    baselineExpectedAnnualFatalities: null,
-    preMitigationExpectedAnnualFatalities: null,
-    postMitigationExpectedAnnualFatalities: null,
-  });
-
-  // Update input params whenever text fields change
-  useEffect(() => {
-    try {
-      setInputParams(prev => ({
-        ...prev,
-        baselineSuccessProbabilityGivenEffort: generateCurvePoints(baselineTextFields),
-        preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(preMitigationTextFields)
-      }));
-    } catch (e) {
-      setError({ message: e.message, stack: e.stack });
-    }
+    computeInputParamsFromTextFields();
   }, [baselineTextFields, preMitigationTextFields]);
 
-  // Run model whenever input params change
-  useEffect(() => {
+  // Output parameters
+  const getOutputParams = () => {
+    return runModel(inputParams);
+  };
+
+  // Initialize input parameters from text data
+  const computeInputParamsFromTextFields = () => {
+    console.log("computeInputParamsFromTextFields");
     try {
-      const newOutputParams = runModel(inputParams);
-      setOutputParams(newOutputParams);
-      setError({ message: "", stack: "" });
+      setInputParams({
+        ...inputParams,
+        baselineSuccessProbabilityGivenEffort:
+          generateCurvePoints(baselineTextFields),
+        preMitigationSuccessProbabilityGivenEffort: generateCurvePoints(
+          preMitigationTextFields
+        ),
+      });
     } catch (e) {
       setError({ message: e.message, stack: e.stack });
+      return null;
     }
-  }, [inputParams]);
+  };
+
+  // Function to refresh the page state
+  const refreshPage = () => {
+    console.log("REFRESHING>>>");
+    // try {
+    //   computeInputParamsFromTextFields();
+    //   // console.log(inputParams.timeToExecuteQueries);
+    //   const newOutputParams = runModelWithErrorHandling(inputParams);
+    //   console.log("new output params", newOutputParams);
+    //   if (!newOutputParams) return;
+
+    //   setOutputParams(newOutputParams);
+    //   setError({ message: "", stack: "" });
+    // } catch (e) {
+    //   setError({ message: e.message, stack: e.stack });
+    // }
+  };
 
   return (
     <div className="App" style={{ padding: "20px" }}>
@@ -145,6 +131,7 @@ function App() {
         <form
           onSubmit={(e) => {
             e.preventDefault();
+            refreshPage();
           }}
         >
           <div
@@ -186,7 +173,7 @@ function App() {
                             value === "" ? "" : parseFloat(value),
                         }));
                       }}
-                      onBlur={() => {}}
+                      onBlur={() => refreshPage()}
                       style={{ width: "80px", marginLeft: "10px" }}
                     />
                   </div>
@@ -203,7 +190,7 @@ function App() {
                             value === "" ? "" : parseFloat(value),
                         }));
                       }}
-                      onBlur={() => {}}
+                      onBlur={() => refreshPage()}
                       style={{ width: "120px", marginLeft: "10px" }}
                     />
                   </div>
@@ -222,7 +209,7 @@ function App() {
                             value === "" ? "" : parseInt(value, 10),
                         }));
                       }}
-                      onBlur={() => {}}
+                      onBlur={() => refreshPage()}
                       style={{ width: "80px", marginLeft: "10px" }}
                     />
                   </div>
@@ -232,10 +219,12 @@ function App() {
 
             <EffortCDF
               onChange={(params) => {
-                setInputParams(prev => ({
+                setInputParams((prev) => ({
                   ...prev,
-                  effortCDF: generateCDFData(params)
+                  effortCDF: generateCDFData(params),
                 }));
+                console.log("params", params);
+                refreshPage();
               }}
             />
             {/* Main Columns */}
@@ -267,11 +256,12 @@ function App() {
                     setBaselineTextFields(params);
                   }}
                   data={inputParams.baselineSuccessProbabilityGivenEffort}
+                  initialValues={baselineTextFields}
                 />
 
                 <ExpectedAnnualFatalities
                   expectedAnnualFatalities={
-                    outputParams.baselineExpectedAnnualFatalities
+                    getOutputParams().baselineExpectedAnnualFatalities
                   }
                 />
               </div>
@@ -299,14 +289,17 @@ function App() {
                 <SuccessGivenEffort
                   onChange={(params) => {
                     setPreMitigationTextFields(params);
+                    // refreshPage();
                   }}
                   data={inputParams.preMitigationSuccessProbabilityGivenEffort}
+                  color="#e74c3c"
+                  initialValues={preMitigationTextFields}
                 />
 
                 <div style={{ textAlign: "center", width: "100%" }}>
                   <ExpectedAnnualFatalities
                     expectedAnnualFatalities={
-                      outputParams.preMitigationExpectedAnnualFatalities
+                      getOutputParams().preMitigationExpectedAnnualFatalities
                     }
                   />
                 </div>
@@ -349,7 +342,6 @@ function App() {
                     const preMitigationCurve = generateCurvePoints(
                       preMitigationTextFields
                     );
-
                     const updatedParams = {
                       ...inputParams,
                       timeToExecuteQueries: timeForQueries,
@@ -357,20 +349,17 @@ function App() {
                       preMitigationSuccessProbabilityGivenEffort:
                         preMitigationCurve,
                     };
-
                     setInputParams(updatedParams);
-                    try {
-                      const newOutputParams = runModel(updatedParams);
-                      setOutputParams(newOutputParams);
-                    } catch (e) {
-                      setError({ message: e.message, stack: e.stack });
-                    }
                   }}
                 />
 
                 <ComparisonSuccessGivenEffort
                   data={
-                    outputParams.postMitigationSuccessProbabilityGivenEffort
+                    getOutputParams()
+                      .postMitigationSuccessProbabilityGivenEffort
+                  }
+                  baselineData={
+                    inputParams.baselineSuccessProbabilityGivenEffort
                   }
                   readOnly={true}
                   title="Success Probability Comparison"
@@ -380,15 +369,12 @@ function App() {
                   queriesPerMonth={inputParams.queriesAttackerExecutesPerMonth}
                   onMouseUp={(data) => {
                     // get the full ban curve
-                    const banCurve = getBanCurve(data);
                     const bansVsQueries = getBansForQueries(data);
                     console.log("ban vs queries", bansVsQueries);
                     setInputParams((prev) => ({
                       ...prev,
-                      banCurve: banCurve,
                       bansVsQueries: bansVsQueries,
                     }));
-
                   }}
                 />
                 <TimeLostToBans
@@ -401,10 +387,15 @@ function App() {
                     }));
                   }}
                 />
+                <ExpectedAnnualFatalities
+                  expectedAnnualFatalities={
+                    getOutputParams().postMitigationExpectedAnnualFatalities
+                  }
+                />
               </div>
             </div>
 
-            {error.message && (
+            {/* {error.message && (
               <div
                 style={{
                   color: "red",
@@ -436,9 +427,33 @@ function App() {
                   </pre>
                 )}
               </div>
-            )}
+            )} */}
 
-
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                marginTop: "40px",
+                marginBottom: "20px",
+              }}
+            >
+              <button
+                onClick={() => refreshPage()}
+                type="button"
+                style={{
+                  padding: "12px 24px",
+                  backgroundColor: "#4CAF50",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  width: "200px",
+                  fontSize: "16px",
+                }}
+              >
+                Refresh
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -47,16 +47,16 @@ const generateData = (parameters) => {
   return points;
 };
 
-const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probability Parameters', hideLabels = false }) => {
+const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probability Parameters', hideLabels = false, initialValues, color = '#2ecc71' }) => {
   // Values shown in the input fields
-  const [inputValues, setInputValues] = useState({
+  const [inputValues, setInputValues] = useState(initialValues || {
     successanch1: 0.1,
     successanch2: 3,
     successanch3: 10,
   });
 
   // Values used for the chart and calculations
-  const [submittedValues, setSubmittedValues] = useState({
+  const [submittedValues, setSubmittedValues] = useState(initialValues || {
     successanch1: 0.1,
     successanch2: 3,
     successanch3: 10,
@@ -181,7 +181,7 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probabi
         <Line
           type="monotone"
           dataKey="successProbability"
-          stroke="#2ecc71"
+          stroke={color}
           name="Success Probability"
           dot={false}
         />

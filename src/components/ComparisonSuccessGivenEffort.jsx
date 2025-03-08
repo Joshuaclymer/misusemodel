@@ -45,31 +45,36 @@ const generateData = (parameters) => {
   return points;
 };
 
-const ComparisonSuccessGivenEffort = ({ onChange, data, readOnly, title = 'Success Probability Parameters', submittedValues }) => {
+const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, title = 'Success Probability Parameters', submittedValues }) => {
   const chartData = useMemo(() => {
     const baseData = generateData(submittedValues);
-    if (data && Array.isArray(data) && data.length > 0) {
-      // Create interpolator for post-mitigation data
-      const postMitigationPoints = [...data].sort((a, b) => a.time - b.time);
-      const getPostMitigation = (time) => {
-        const point = postMitigationPoints.find(p => Math.abs(p.time - time) < 0.001);
+    
+    // Create interpolator function
+    const createInterpolator = (points) => {
+      const sortedPoints = [...points].sort((a, b) => a.time - b.time);
+      return (time) => {
+        const point = sortedPoints.find(p => Math.abs(p.time - time) < 0.001);
         if (point) return point.successProbability;
         // Interpolate between closest points
-        const next = postMitigationPoints.find(p => p.time > time);
-        const prev = [...postMitigationPoints].reverse().find(p => p.time < time);
+        const next = sortedPoints.find(p => p.time > time);
+        const prev = [...sortedPoints].reverse().find(p => p.time < time);
         if (!next || !prev) return prev ? prev.successProbability : next.successProbability;
         const ratio = (time - prev.time) / (next.time - prev.time);
         return prev.successProbability + ratio * (next.successProbability - prev.successProbability);
       };
+    };
 
-      return baseData.map(point => ({
-        time: point.time,
-        preMitigationProbability: point.preMitigationProbability,
-        postMitigationProbability: getPostMitigation(point.time)
-      }));
-    }
-    return baseData;
-  }, [data, submittedValues]);
+    // Get interpolators for both datasets if they exist
+    const getPostMitigation = data && Array.isArray(data) && data.length > 0 ? createInterpolator(data) : null;
+    const getBaseline = baselineData && Array.isArray(baselineData) && baselineData.length > 0 ? createInterpolator(baselineData) : null;
+
+    return baseData.map(point => ({
+      time: point.time,
+      preMitigationProbability: point.preMitigationProbability,
+      postMitigationProbability: getPostMitigation ? getPostMitigation(point.time) : point.postMitigationProbability,
+      baselineProbability: getBaseline ? getBaseline(point.time) : null
+    }));
+  }, [data, baselineData, submittedValues]);
 
   return (
     <div style={{ width: "100%" }}>
@@ -110,6 +115,13 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, readOnly, title = 'Succe
           wrapperStyle={{
             paddingTop: "20px"
           }}
+        />
+        <Line
+          type="monotone"
+          dataKey="baselineProbability"
+          stroke="#2ecc71"
+          name="Baseline Success Probability"
+          dot={false}
         />
         <Line
           type="monotone"

@@ -20,11 +20,14 @@ export const calculateExpectedAnnualFatalities = (
     if (!nearestSuccessProbabilityPoint) {
       continue;
     }
-    const probabilityOfTime = (effortCDF[i].months - effortCDF[i - 1].months);
+    const probabilityOfTime = (effortCDF[i].cumulativeProbability - effortCDF[i - 1].cumulativeProbability);
     sumOfSuccessProbabilities += nearestSuccessProbabilityPoint.successProbability * probabilityOfTime;
     sumOfTimeProbabilities += probabilityOfTime;
   }
   const expectedSuccess = sumOfSuccessProbabilities / sumOfTimeProbabilities;
+  console.log("sumOfSuccessProbabilities", sumOfSuccessProbabilities)
+  console.log("sumOfTimeProbabilities", sumOfTimeProbabilities)
+  console.log("expectedSuccess", expectedSuccess)
   const expectedAnnualFatalities = expectedSuccess * expectedAnnualAttempts * expectedFatalitiesPerSuccessfulAttempt;
   console.log("expectedAnnualFatalities", expectedAnnualFatalities)
 

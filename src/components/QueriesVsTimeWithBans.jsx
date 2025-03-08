@@ -16,6 +16,9 @@ const QueriesVsTimeWithBans = ({
   bansGivenQueries, // from BansVsQueries
   timeLostGivenBans = [], // from TimeLostToBans
 }) => {
+  console.log("timeToExecuteQueries", timeToExecuteQueries);
+  console.log("bansGivenQueries", bansGivenQueries);
+  console.log("timeLostGivenBans", timeLostGivenBans);
   let timeToExecuteQueriesDisplayed = calculateTimeToExecuteQueriesGivenBans({
     bansGivenQueries,
     timeLostGivenBans,
@@ -44,23 +47,42 @@ const QueriesVsTimeWithBans = ({
       // Adjust the last point time so that it is within the plot's bounds (45 by 45). Adjust via linear interpolation
       if (lastPointTimeBeforeAdjustment > 45) {
         let lastPointTimeAfterAdjustment = 45;
-        const prevPoint = smoothedTimeToExecuteQueriesDisplayed[smoothedTimeToExecuteQueriesDisplayed.length - 1];
-        const t = (45 - prevPoint.time) / (lastPointTimeBeforeAdjustment - prevPoint.time);
-        let lastPointQueriesAfterAdjustment = prevPoint.queries + t * (lastPointQueriesBeforeAdjustment - prevPoint.queries);
-        lastPointQueriesAfterAdjustment = Math.min(45, lastPointQueriesAfterAdjustment);
+        const prevPoint =
+          smoothedTimeToExecuteQueriesDisplayed[
+            smoothedTimeToExecuteQueriesDisplayed.length - 1
+          ];
+        const t =
+          (45 - prevPoint.time) /
+          (lastPointTimeBeforeAdjustment - prevPoint.time);
+        let lastPointQueriesAfterAdjustment =
+          prevPoint.queries +
+          t * (lastPointQueriesBeforeAdjustment - prevPoint.queries);
+        lastPointQueriesAfterAdjustment = Math.min(
+          45,
+          lastPointQueriesAfterAdjustment
+        );
         smoothedTimeToExecuteQueriesDisplayed.push({
           time: lastPointTimeAfterAdjustment,
-          queries: lastPointQueriesAfterAdjustment
+          queries: lastPointQueriesAfterAdjustment,
         });
       } else if (lastPointQueriesBeforeAdjustment > 45) {
         let lastPointQueriesAfterAdjustment = 45;
-        const prevPoint = smoothedTimeToExecuteQueriesDisplayed[smoothedTimeToExecuteQueriesDisplayed.length - 1];
-        const t = (45 - prevPoint.queries) / (lastPointQueriesBeforeAdjustment - prevPoint.queries);
-        let lastPointTimeAfterAdjustment = prevPoint.time + t * (lastPointTimeBeforeAdjustment - prevPoint.time);
-        lastPointTimeAfterAdjustment = Math.min(45, lastPointTimeAfterAdjustment);
+        const prevPoint =
+          smoothedTimeToExecuteQueriesDisplayed[
+            smoothedTimeToExecuteQueriesDisplayed.length - 1
+          ];
+        const t =
+          (45 - prevPoint.queries) /
+          (lastPointQueriesBeforeAdjustment - prevPoint.queries);
+        let lastPointTimeAfterAdjustment =
+          prevPoint.time + t * (lastPointTimeBeforeAdjustment - prevPoint.time);
+        lastPointTimeAfterAdjustment = Math.min(
+          45,
+          lastPointTimeAfterAdjustment
+        );
         smoothedTimeToExecuteQueriesDisplayed.push({
           time: lastPointTimeAfterAdjustment,
-          queries: lastPointQueriesAfterAdjustment
+          queries: lastPointQueriesAfterAdjustment,
         });
       }
       break;
