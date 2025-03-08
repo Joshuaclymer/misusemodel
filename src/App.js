@@ -178,22 +178,22 @@ function App() {
                   maxWidth: "1400px",
                   width: "100%",
                   // margin: "clamp(20px, 5vw, 80px) auto",
-                  gap: "clamp(20px, 4vw, 40px)",
+                  gap: width < 1200 ? "0px" : "40px",
                 }}
               >
                 <BlueBox>
                   <div
                     style={{
                       display: "flex",
-                      justifyContent: width < 768 ? "center" : "flex-end",
+                      justifyContent: "center",
                       width: "100%",
                     }}
                   >
                     <h3
                       style={{
                         margin: "0px",
-                        marginTop: "20px",
-                        marginRight: "20px",
+                        marginTop: "30px",
+                        marginBottom: "10px",
                         color: "#113A58",
                       }}
                     >
@@ -265,24 +265,25 @@ function App() {
                 <div
                   style={{
                     display: "flex",
-                    flexDirection: "row",
+                    flexDirection: width < 1200 ? "column" : "row",
                     alignItems: "stretch",
                     justifyContent: "center",
                     width: "100%",
-                    minHeight: "800px",
+                    minHeight: width < 1200 ? "auto" : "800px",
                   }}
                 >
                   <OrangeBox>
                     <div
                       style={{
-                        display: "flex",
                         flexDirection: "column",
                         justifyContent: "flex-start",
                         alignItems: "center",
                         width: "100%",
-                        height: "100%",
-                        gap: "40px",
-                        padding: "40px",
+                        flex: 1,
+                        // gap: "40px",
+                        marginTop: "30px",
+                        marginBottom: "30px",
+                        // padding: "50px",
                       }}
                     >
                       <h3
@@ -294,11 +295,20 @@ function App() {
                         Evidence from capability evaluations + experts
                       </h3>
                     </div>
-                    <SuccessGivenEffort
-                      title="Pre-Mitigation success probability"
-                      onChange={(params) => {
-                        setPreMitigationTextFields(params);
-                        // refreshPage();
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        height: "100%",
+                        // margin: "0 auto"
+                      }}
+                    >
+                      <SuccessGivenEffort
+                        title="Pre-Mitigation success probability"
+                        onChange={(params) => {
+                          setPreMitigationTextFields(params);
+                          // refreshPage();
                       }}
                       data={
                         inputParams.preMitigationSuccessProbabilityGivenEffort
@@ -315,6 +325,7 @@ function App() {
                         getOutputParams().preMitigationExpectedAnnualFatalities
                       }
                     />
+                    </div>
                   </OrangeBox>
                   <PurpleBox>
                     <div
@@ -325,13 +336,14 @@ function App() {
                         alignItems: "center",
                         width: "100%",
                         height: "100%",
-                        gap: "40px",
+                        // gap: "40px",
                         // padding: "40px",
                       }}
                     >
                       <h3
                         style={{
-                          margin: "40px",
+                          marginTop: "30px",
+                          marginBottom: "30px",
                           color: "#59095E",
                         }}
                       >
@@ -341,10 +353,10 @@ function App() {
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gridTemplateRows: "1fr 1fr",
+                        gridTemplateColumns: width < 1200 ? "1fr" : "1fr 1fr",
+                        gridTemplateRows: width < 1200 ? "1fr" : "1fr 1fr",
                         gap: "0px",
-                        width: "100%",
+                        // width: "100%",
                         height: "100%",
                         padding: "0px",
                       }}
@@ -418,6 +430,62 @@ function App() {
                       }
                     />
                   </PurpleBox>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      width: "100%",
+                    }}
+                  >
+                    <div style={{ 
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: "30px",
+                      width: "100%",
+                    }}>
+
+                      
+                      <ExpectedAnnualFatalities
+                        titleWord="Baseline"
+                        titleColor="#2ecc71"
+                        expectedAnnualFatalities={
+                          getOutputParams().baselineExpectedAnnualFatalities
+                        }
+                      />
+                      <ExpectedAnnualFatalities
+                        titleWord="Pre-Mitigation"
+                        titleColor="#e74c3c"
+                        expectedAnnualFatalities={
+                          getOutputParams().preMitigationExpectedAnnualFatalities
+                        }
+                      />
+                      <ExpectedAnnualFatalities
+                        titleWord="Post-Mitigation"
+                        titleColor="#3498DB"
+                        expectedAnnualFatalities={
+                          getOutputParams().postMitigationExpectedAnnualFatalities
+                        }
+                        baseline={
+                          getOutputParams().baselineExpectedAnnualFatalities
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <h2
+                    style={{
+                      margin: "0 0 20px 0",
+                      width: "100%",
+                      maxWidth: "500px",
+                      textAlign: "center",
+                    }}
+                  >
+                    Post-Mitigation Deployment
+                  </h2>
                 </div>
                 <div
                   style={{
