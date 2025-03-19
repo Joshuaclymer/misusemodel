@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import PasswordPage from "./components/PasswordPage.jsx";
 import "./App.css";
 import EffortCDF from "./components/EffortCDF.jsx";
 import QueriesVsTime from "./components/QueriesVsTime.jsx";
@@ -19,6 +20,7 @@ import OrangeBox from "./components/OrangeBox.jsx";
 import PurpleBox from "./components/PurpleBox.jsx";
 import Card from "./components/Card.jsx";
 import { ArcherContainer, ArcherElement } from "react-archer";
+import SimulationPlot from "./components/SimulationPlot.jsx";
 
 import {
   runModel,
@@ -26,7 +28,7 @@ import {
 } from "./utils/model.js";
 
 // Maximum time in months for pre-mitigation and baseline curves
-export const maxTimeMonths = 60; // 60 months
+export const maxTimeMonths = 480; // 60 months
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
@@ -78,6 +80,7 @@ const initialEffortPoints = {
 function App() {
   const { width } = useWindowSize();
   const [error, setError] = useState({ message: "", stack: "" });
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const [baselineTextFields, setBaselineTextFields] = useState({
     successanch1: 0.1,
@@ -106,6 +109,7 @@ function App() {
     expectedAnnualAttempts: 5,
     effortCDF: generateCDFData(initialEffortPoints),
     queriesAttackerExecutesPerMonth: 30,
+    jailbreakTime: 20, // Default jailbreak time (months)
   });
 
   // Update input params when text fields change
@@ -152,6 +156,10 @@ function App() {
 
   let showArrows = width >= 1200;
   // let showArrows = true;
+
+  if (!isAuthenticated) {
+    return <PasswordPage onCorrectPassword={() => setIsAuthenticated(true)} />;
+  }
 
   return (
     <div className="App">
@@ -797,6 +805,20 @@ function App() {
                       </ArcherElement>
                     </PurpleBox>
                   </div>
+                  <Card>
+
+                    <SimulationPlot 
+                      outputParams={getOutputParams()} 
+                      maxTimeMonths={maxTimeMonths} 
+                      jailbreakTime={inputParams.jailbreakTime}
+                      onJailbreakTimeChange={(newTime) => {
+                        setInputParams(prev => ({
+                          ...prev,
+                          jailbreakTime: newTime
+                        }));
+                      }}
+                    />
+                  </Card>
                 </div>
               </div>
             </ArcherContainer>
