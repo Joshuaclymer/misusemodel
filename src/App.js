@@ -28,7 +28,7 @@ import {
 } from "./utils/model.js";
 
 // Maximum time in months for pre-mitigation and baseline curves
-export const maxTimeMonths = 480; // 60 months
+export const maxTimeMonths = 120; // 60 months
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({

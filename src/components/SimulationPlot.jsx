@@ -4,7 +4,7 @@ import { maxTimeMonths } from '../App';
 
 const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbreakTimeChange }) => {
   const { mainlineRiskProjection, riskProjectionWithJailbreak } = outputParams;
-  const unacceptableRiskThreshold = outputParams.baselineExpectedAnnualFatalities * 1.5;
+  let unacceptableRiskThreshold = outputParams.baselineExpectedAnnualFatalities * 1.5;
   console.log("unacceptableRiskThreshold", unacceptableRiskThreshold);
   
   // References for drag handling
@@ -59,10 +59,22 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
     if (isDraggingRef.current) {
       isDraggingRef.current = false;
       document.removeEventListener('mousemove', handleDragInChart);
-      // Update parent with final position
+      
+      // Find the nearest time point in mainlineRiskProjection
+      if (mainlineRiskProjection && mainlineRiskProjection.length > 0) {
+        const nearestPoint = mainlineRiskProjection.reduce((prev, curr) => {
+          return Math.abs(curr.time - currentPositionRef.current) < Math.abs(prev.time - currentPositionRef.current) ? curr : prev;
+        });
+        
+        // Snap to the nearest time point
+        currentPositionRef.current = nearestPoint.time;
+        setLocalJailbreakTime(nearestPoint.time);
+      }
+      
+      // Update parent with snapped position
       onJailbreakTimeChange(currentPositionRef.current);
     }
-  }, [handleDragInChart, onJailbreakTimeChange]);
+  }, [handleDragInChart, onJailbreakTimeChange, mainlineRiskProjection]);
   
 
   
