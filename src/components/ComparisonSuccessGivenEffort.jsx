@@ -13,40 +13,60 @@ import { maxTimeMonths } from '../App.js';
 
 const ANCHOR_MONTHS = [3, 12, 36];
 
-const generateData = (parameters) => {
-  const points = [];
-  const successPoints = [
-    parameters.successanch1 / 100,
-    parameters.successanch2 / 100,
-    parameters.successanch3 / 100,
-  ];
+const ComparisonSuccessGivenEffort = ({ onChange, postMitigationData, baselineData, readOnly, preMitigationData, tooltipDescription = "The distribution below shows the probability that a novice attempt to synthesize a Pandemic Potential Pathogen succeeds given the amount of time spent on the attempt. The solid blue line shows the post-mitigation success probability, while the dashed lines show the baseline and pre-mitigation probabilities for comparison." }) => {
+  console.log("preMitigationData", preMitigationData);
+  console.log("postMitigationData", postMitigationData);
+  console.log("baselineData", baselineData);
 
-  for (let i = 0; i <= 100; i++) {
-    const x = i / 100;
-    // Use log scale from 0.1 months to 60 months (5 years)
-    const time = Math.exp(
-      Math.log(0.1) + x * (Math.log(maxTimeMonths) - Math.log(0.1))
-    );
-
-    // Calculate pre-mitigation probability using Fritsch-Carlson interpolation
-    const preMitigationProb = fitCurveWithFritschCarlson(
-      time,
-      [0, ...successPoints],
-      [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]
-    );
-
-    points.push({
-      time,
-      preMitigationProbability: preMitigationProb,
-      postMitigationProbability: preMitigationProb,  // Will be updated if data is provided
-    });
-  }
-
-  return points;
-};
-
-const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, submittedValues, tooltipDescription = "The distribution below shows the probability that a novice attempt to synthesize a Pandemic Potential Pathogen succeeds given the amount of time spent on the attempt. The solid blue line shows the post-mitigation success probability, while the dashed lines show the baseline and pre-mitigation probabilities for comparison." }) => {
   const [width, setWidth] = useState(Math.min(600, window.innerWidth - 40));
+  
+  // Combine all datasets for the chart using preMitigationData time points as the base
+  const chartData = useMemo(() => {
+    if (!preMitigationData || preMitigationData.length === 0) {
+      return [];
+    }
+    
+    // Helper function to interpolate a value at a given time point
+    const interpolateValue = (data, timePoint) => {
+      if (!data || data.length === 0) return null;
+      
+      // Find the two closest points
+      const sortedData = [...data].sort((a, b) => a.time - b.time);
+      
+      // If timePoint is before first point or after last point
+      if (timePoint <= sortedData[0].time) return sortedData[0].successProbability;
+      if (timePoint >= sortedData[sortedData.length - 1].time) return sortedData[sortedData.length - 1].successProbability;
+      
+      // Find the two points to interpolate between
+      let lowerIndex = 0;
+      for (let i = 0; i < sortedData.length - 1; i++) {
+        if (sortedData[i].time <= timePoint && sortedData[i + 1].time >= timePoint) {
+          lowerIndex = i;
+          break;
+        }
+      }
+      
+      const lowerPoint = sortedData[lowerIndex];
+      const upperPoint = sortedData[lowerIndex + 1];
+      
+      // Linear interpolation
+      const ratio = (timePoint - lowerPoint.time) / (upperPoint.time - lowerPoint.time);
+      return lowerPoint.successProbability + ratio * (upperPoint.successProbability - lowerPoint.successProbability);
+    };
+    
+    // Use all time points from preMitigationData
+    const sortedPreMitigationData = [...preMitigationData].sort((a, b) => a.time - b.time);
+    
+    // Create data points using preMitigationData time points
+    return sortedPreMitigationData.map(point => {
+      return {
+        time: point.time,
+        preMitigationProbability: point.successProbability,
+        postMitigationProbability: interpolateValue(postMitigationData, point.time),
+        baselineProbability: interpolateValue(baselineData, point.time)
+      };
+    });
+  }, [postMitigationData, baselineData, preMitigationData]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -55,35 +75,6 @@ const ComparisonSuccessGivenEffort = ({ onChange, data, baselineData, readOnly, 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  const chartData = useMemo(() => {
-    const baseData = generateData(submittedValues);
-    
-    // Create interpolator function
-    const createInterpolator = (points) => {
-      const sortedPoints = [...points].sort((a, b) => a.time - b.time);
-      return (time) => {
-        const point = sortedPoints.find(p => Math.abs(p.time - time) < 0.001);
-        if (point) return point.successProbability;
-        // Interpolate between closest points
-        const next = sortedPoints.find(p => p.time > time);
-        const prev = [...sortedPoints].reverse().find(p => p.time < time);
-        if (!next || !prev) return prev ? prev.successProbability : next.successProbability;
-        const ratio = (time - prev.time) / (next.time - prev.time);
-        return prev.successProbability + ratio * (next.successProbability - prev.successProbability);
-      };
-    };
-
-    // Get interpolators for both datasets if they exist
-    const getPostMitigation = data && Array.isArray(data) && data.length > 0 ? createInterpolator(data) : null;
-    const getBaseline = baselineData && Array.isArray(baselineData) && baselineData.length > 0 ? createInterpolator(baselineData) : null;
-
-    return baseData.map(point => ({
-      time: point.time,
-      preMitigationProbability: point.preMitigationProbability,
-      postMitigationProbability: getPostMitigation ? getPostMitigation(point.time) : point.postMitigationProbability,
-      baselineProbability: getBaseline ? getBaseline(point.time) : null
-    }));
-  }, [data, baselineData, submittedValues]);
 
   return (
     <div style={{ 

@@ -1,6 +1,7 @@
 import { fitQueriesCurve } from "../components/QueriesVsTime.jsx";
-import { maxTimeMonths } from "../App.js";
+// import { maxTimeMonths } from "../App.js";
 import { generateCDFData } from "../components/EffortCDF.jsx";
+import { maxTimeMonths } from "../App.js";
 
 // Calculate expected annual fatalities based on success probability and other factors
 
@@ -246,8 +247,9 @@ export const runModel = (params) => {
 const applyGaussianSmoothing = (projection, sigma = 3) => {
   if (!projection || projection.length === 0) return;
   
-  // Store original values
+  // Store original values and save the first point
   const originalValues = projection.map(p => p.risk);
+  const firstPointValue = originalValues[0];
   
   // Calculate kernel size to cover ±3σ
   const kernelSize = Math.ceil(sigma * 3) * 2 + 1; // Ensure odd number
@@ -283,6 +285,12 @@ const applyGaussianSmoothing = (projection, sigma = 3) => {
   
   // Apply convolution with mirrored values for better edge handling
   for (let i = 0; i < projection.length; i++) {
+    // Skip the first point to preserve it exactly
+    if (i === 0) {
+      smoothedValues[i] = firstPointValue;
+      continue;
+    }
+    
     let weightedSum = 0;
     let weightSum = 0;
     
@@ -301,6 +309,9 @@ const applyGaussianSmoothing = (projection, sigma = 3) => {
   for (let i = 0; i < projection.length; i++) {
     projection[i].risk = smoothedValues[i];
   }
+  
+  // Double-check that the first point is preserved exactly
+  projection[0].risk = firstPointValue;
 };
 
 const alignSuccessProbabilitiesWithTimePoints = (successProbabilities, timePoints, effortCDFNormalized, effortCDF) => {
@@ -348,8 +359,8 @@ const simulateDeployment = (params) => {
   );
 
   // Simulate normal deployment
-  const lengthOfDeployment = 120;
-  const numberOfSimulations = 100;
+  const lengthOfDeployment = maxTimeMonths * 2;
+  const numberOfSimulations = 400; // 400
 
   const simulationResults = {
     mainlineRiskProjection: [],
@@ -477,7 +488,9 @@ const simulateDeployment = (params) => {
     // const numAttemptsInPeriod = 2
     // console.log("numAttemptsInPeriod", numAttemptsInPeriod)
     const timesAttemptsStart = Array.from({ length: numAttemptsInPeriod }, () => Math.floor(Math.random() * timePoints.length));
-    // const timesAttemptsStart = [0, 50]
+    // console.log("timesAttemptsStart --------------", timesAttemptsStart)
+    // console.log("lengthOfDeployment", lengthOfDeployment)
+    // const timesAttemptsStart = [0]
 
 
     /// -----------get risk projections ---------------
@@ -605,27 +618,28 @@ const simulateDeployment = (params) => {
   let smoothedMainlinePointsBeforeJailbreak = []
   let pointsAfterJailbreak = []
   for (let i = 0; i < jailbreakRiskProjectionAggregated.length; i++) {
-    if (i <= jailbreakIndex) {
-      smoothedMainlinePointsBeforeJailbreak.push({
-        time: timePoints[i],
-        risk: mainlineRiskProjectionAggregated[i].risk
-      });
-    } else {
+    if (i > jailbreakIndex) {
       pointsAfterJailbreak.push({
         time: timePoints[i],
         risk: jailbreakRiskProjectionAggregated[i].risk
       });
     }
   }
+
+  // prepend the last point of the mainline projection to the jailbreak projection
+  pointsAfterJailbreak.unshift({
+    time: timePoints[jailbreakIndex],
+    risk: mainlineRiskProjectionAggregated[jailbreakIndex].risk
+  });
   // const smoothedPointsAfterJailbreak = applyGaussianSmoothing(pointsAfterJailbreak);
   applyGaussianSmoothing(pointsAfterJailbreak);
 
-  const smoothedJailbreakRiskProjection = smoothedMainlinePointsBeforeJailbreak.concat(pointsAfterJailbreak);
+  // const smoothedJailbreakRiskProjection = [smoothedMainlinePointsBeforeJailbreak[smoothedMainlinePointsBeforeJailbreak.length - 1]].concat(pointsAfterJailbreak);
 
   // applyGaussianSmoothing(jailbreakRiskProjectionAggregated);
   
   simulationResults.mainlineRiskProjection = mainlineRiskProjectionAggregated;
-  simulationResults.riskProjectionWithJailbreak = smoothedJailbreakRiskProjection;
+  simulationResults.riskProjectionWithJailbreak = pointsAfterJailbreak;
 
   return simulationResults;
 }

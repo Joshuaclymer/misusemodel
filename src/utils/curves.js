@@ -1,7 +1,10 @@
 import * as math from "mathjs";
+import { maxTimeMonths } from "../App";
+// import { ANCHOR_MONTHS } from "../App";
 
-const ANCHOR_MONTHS = [3, 12, 36, 60];
-
+const ANCHOR_MONTHS = [2, 6, 24, 48];
+// Get the last anchor point for success probability
+const lastAnchorMonth = 24
 // Fit monotonic cubic Hermite spline for success probability and effort CDF
 export const fitCurveWithFritschCarlson = (x, points, xs) => {
   const logX = Math.log(x);
@@ -44,53 +47,67 @@ export const fitCurveWithFritschCarlson = (x, points, xs) => {
   const h11 = t3 - t2;
 
   // Return interpolated value and ensure it's between 0 and 1
-  return Math.min(1, Math.max(0,
-    h00 * points[i] +
-    h10 * h * tangents[i] +
-    h01 * points[i + 1] +
-    h11 * h * tangents[i + 1]
-  ));
+  return Math.min(
+    1,
+    Math.max(
+      0,
+      h00 * points[i] +
+        h10 * h * tangents[i] +
+        h01 * points[i + 1] +
+        h11 * h * tangents[i + 1]
+    )
+  );
 };
-
-
 
 // Fit effort CDF curve
 export const fitEffortCDF = (x, panch1, panch2, panch3, panch4) => {
   return fitCurveWithFritschCarlson(
     x,
     [0, panch1 / 100, panch2 / 100, panch3 / 100, panch4 / 100],
-    [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]
+    [Math.log(0.1), ...ANCHOR_MONTHS.map((x) => Math.log(x))]
   );
 };
 
 // Fit logistic curve with additional monotonicity constraints
 // Generate points for a curve using Fritsch-Carlson interpolation
-export const generateCurvePoints = (params, valueKey = 'successProbability') => {
+export const generateCurvePoints = (
+  params,
+  valueKey = "successProbability"
+) => {
   const points = [];
-  const values = [params.successanch1 / 100, params.successanch2 / 100, params.successanch3 / 100];
+  const values = [
+    params.successanch1 / 100,
+    params.successanch2 / 100,
+    params.successanch3 / 100,
+  ];
 
-  // Calculate the value at 36 months (last anchor point)
-  const valueAt36 = fitCurveWithFritschCarlson(
-    36,
-    [0, ...values],
-    [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]
+  
+  // Calculate the value at the last anchor point
+  const valueAtLastAnchor = fitCurveWithFritschCarlson(
+    lastAnchorMonth,
+    [0, 0, ...values],
+    [Math.log(0.1), Math.log(0.5), ...ANCHOR_MONTHS.map((x) => Math.log(x))]
   );
 
-  // Generate points from 0.1 to 60 months on a log scale
+  // Generate points from 0.1 to maxTimeMonths on a log scale
+  const maxMonths = maxTimeMonths; // Default max months to plot
   for (let i = 0; i <= 100; i++) {
     const x = i / 100;
-    const time = Math.exp(Math.log(0.1) + x * (Math.log(60) - Math.log(0.1)));
+    const time = Math.exp(Math.log(0.1) + x * (Math.log(maxMonths) - Math.log(0.1)));
 
-    // Use valueAt36 for any time beyond 36 months
-    const value = time > 36 ? valueAt36 : fitCurveWithFritschCarlson(
-      time,
-      [0, ...values],
-      [Math.log(0.1), ...ANCHOR_MONTHS.map(x => Math.log(x))]
-    );
+    // Use valueAtLastAnchor for any time beyond the last anchor point
+    const value =
+      time > lastAnchorMonth
+        ? valueAtLastAnchor
+        : fitCurveWithFritschCarlson(
+            time,
+            [0, 0, ...values],
+            [Math.log(0.1), Math.log(0.5), ...ANCHOR_MONTHS.map((x) => Math.log(x))]
+          );
 
     points.push({
       time,
-      [valueKey]: value
+      [valueKey]: value,
     });
   }
 

@@ -28,7 +28,8 @@ import {
 } from "./utils/model.js";
 
 // Maximum time in months for pre-mitigation and baseline curves
-export const maxTimeMonths = 120; // 60 months
+export const maxTimeMonths = 48; 
+export const ANCHOR_MONTHS = [2, 6, 24];
 
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
@@ -51,6 +52,7 @@ const useWindowSize = () => {
   return windowSize;
 };
 
+
 const initialTimeToExecuteQueries = [
   { time: 0, queries: 0, fixed: true },
   { time: 22.5, queries: 10 }, // Middle point slightly above the diagonal
@@ -72,8 +74,8 @@ const initialTimeLostToBans = [
 
 const initialEffortPoints = {
   effortanch1: 90,
-  effortanch2: 95,
-  effortanch3: 98,
+  effortanch2: 98,
+  effortanch3: 100,
   effortanch4: 100,
 };
 
@@ -89,9 +91,9 @@ function App() {
   });
 
   const [preMitigationTextFields, setPreMitigationTextFields] = useState({
-    successanch1: 0.1,
-    successanch2: 3,
-    successanch3: 20,
+    successanch1: 0.4,
+    successanch2: 10,
+    successanch3: 11,
   });
 
   // Initialize input parameters with computed values right away
@@ -106,10 +108,11 @@ function App() {
     bansVsQueries: getBansForQueries(initialBansVsQueries),
     timeLostToBans: getTimeLostGivenBans(initialTimeLostToBans),
     expectedFatalitiesPerSuccessfulAttempt: 1000000,
-    expectedAnnualAttempts: 5,
+    expectedAnnualAttempts: 10,
     effortCDF: generateCDFData(initialEffortPoints),
     queriesAttackerExecutesPerMonth: 30,
-    jailbreakTime: 20, // Default jailbreak time (months)
+    jailbreakTime: maxTimeMonths / 2, // Default jailbreak time (months)
+    unacceptableRiskContribution: 30000, // Default unacceptable risk contribution (annual fatalities)
   });
 
   // Update input params when text fields change
@@ -578,6 +581,10 @@ function App() {
                                 getOutputParams()
                                   .baselineExpectedAnnualFatalities
                               }
+
+                              unacceptableRiskContribution={
+                                inputParams.unacceptableRiskContribution
+                              }
                             />
                           </div>
                         </div>
@@ -775,7 +782,7 @@ function App() {
                           <div>
                             <Card>
                               <ComparisonSuccessGivenEffort
-                                data={
+                                postMitigationData={
                                   getOutputParams()
                                     .postMitigationSuccessProbabilityGivenEffort
                                 }
@@ -784,7 +791,7 @@ function App() {
                                 }
                                 readOnly={true}
                                 title="Success Probability Comparison"
-                                submittedValues={preMitigationTextFields}
+                                preMitigationData={inputParams.preMitigationSuccessProbabilityGivenEffort}
                               />
                             </Card>
                           </div>
@@ -805,12 +812,57 @@ function App() {
                       </ArcherElement>
                     </PurpleBox>
                   </div>
-                  <Card>
+                  <div style={{maxWidth: "100%", display: "flex", flexDirection: "column", alignItems: "center"}}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", maxWidth: "600px", justifyContent: "center"}}>
 
+                    <h3
+                      style={{
+                        margin: "0px",
+                        marginTop: "30px",
+                        marginBottom: "10px",
+                        color: "#000000",
+                      }}
+                    >
+                      Estimating how quickly developers need to respond to changing deployment conditions
+                    </h3>
+                    <p style={{ marginBottom: "0px", color: "grey"}}> We can use this quantitative model to simulate "what-if scenarios" where users identify a way to reliably jailbreak models. How much time do developers have to correct the deployment? </p>
+
+                    </div>
+                  </div>
+
+                  <Card>
+                    <div style={{ padding: '10px', marginBottom: '10px' }}>
+                      <label htmlFor="unacceptableRiskContribution" style={{ marginRight: '10px', fontWeight: 'normal' }}>
+                        Unacceptable Risk Threshold (annual fatalities):
+                      </label>
+                      <input
+                        id="unacceptableRiskContribution"
+                        type="number"
+                        defaultValue={inputParams.unacceptableRiskContribution}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            const value = parseInt(e.target.value, 10);
+                            if (!isNaN(value) && value > 0) {
+                              setInputParams(prev => ({
+                                ...prev,
+                                unacceptableRiskContribution: value
+                              }));
+                            }
+                          }
+                        }}
+                        style={{
+                          padding: '5px',
+                          borderRadius: '4px',
+                          border: '1px solid #ccc',
+                          width: '150px'
+                        }}
+                      />
+                    </div>
                     <SimulationPlot 
                       outputParams={getOutputParams()} 
                       maxTimeMonths={maxTimeMonths} 
                       jailbreakTime={inputParams.jailbreakTime}
+                      unacceptableRiskContribution={inputParams.unacceptableRiskContribution}
                       onJailbreakTimeChange={(newTime) => {
                         setInputParams(prev => ({
                           ...prev,

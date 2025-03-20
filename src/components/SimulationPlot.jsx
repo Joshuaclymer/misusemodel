@@ -2,9 +2,9 @@ import React, { useMemo, useState, useRef, useEffect, useCallback } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceDot, Label, ReferenceLine, ReferenceArea } from 'recharts';
 import { maxTimeMonths } from '../App';
 
-const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbreakTimeChange }) => {
+const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, unacceptableRiskContribution, onJailbreakTimeChange }) => {
   const { mainlineRiskProjection, riskProjectionWithJailbreak } = outputParams;
-  let unacceptableRiskThreshold = outputParams.baselineExpectedAnnualFatalities * 1.5;
+  let unacceptableRiskThreshold = outputParams.baselineExpectedAnnualFatalities + unacceptableRiskContribution;
   console.log("unacceptableRiskThreshold", unacceptableRiskThreshold);
   
   // References for drag handling
@@ -99,25 +99,54 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
   // Calculate the maximum y-value in the plot
   const maxYValue = useMemo(() => {
     let maxValue = 0;
+    let mainlineMax = 0;
+    let jailbreakMax = 0;
     
     // Check mainline data
     if (mainlineRiskProjection && mainlineRiskProjection.length > 0) {
-      const mainlineMax = Math.max(...mainlineRiskProjection.map(point => point.risk || 0));
-      maxValue = Math.max(maxValue, mainlineMax);
+      // Filter out any NaN or undefined values
+      const validMainlinePoints = mainlineRiskProjection.filter(point => 
+        point && point.risk !== undefined && !isNaN(point.risk));
+      
+      if (validMainlinePoints.length > 0) {
+        mainlineMax = Math.max(...validMainlinePoints.map(point => point.risk));
+        maxValue = Math.max(maxValue, mainlineMax);
+      }
     }
     
     // Check jailbreak data
     if (riskProjectionWithJailbreak && riskProjectionWithJailbreak.length > 0) {
-      const jailbreakMax = Math.max(...riskProjectionWithJailbreak.map(point => point.risk || 0));
-      maxValue = Math.max(maxValue, jailbreakMax);
+      // Filter out any NaN or undefined values
+      const validJailbreakPoints = riskProjectionWithJailbreak.filter(point => 
+        point && point.risk !== undefined && !isNaN(point.risk));
+      
+      if (validJailbreakPoints.length > 0) {
+        jailbreakMax = Math.max(...validJailbreakPoints.map(point => point.risk));
+        maxValue = Math.max(maxValue, jailbreakMax);
+      }
     }
     
     // Also consider the unacceptable risk threshold
     maxValue = Math.max(maxValue, unacceptableRiskThreshold || 0);
     
+    // Add a fallback minimum value if everything else is zero or invalid
+    if (maxValue <= 0) {
+      maxValue = 10; // Reasonable default
+    }
+    
+    console.log("Max value calculation:", {
+      mainlineMax,
+      jailbreakMax,
+      threshold: unacceptableRiskThreshold,
+      finalMaxValue: maxValue
+    });
+    
     // Apply the chart bounds from memory (max y = 45)
-    return Math.min(maxValue, 45);
+    return maxValue
   }, [mainlineRiskProjection, riskProjectionWithJailbreak, unacceptableRiskThreshold]);
+
+
+  console.log("maxYValue", maxYValue);
   
   // Extract the interpolation points and calculate the intersection point
   const { intersectionPoint, lastPointBeforeThreshold, firstPointAfterThreshold } = useMemo(() => {
@@ -210,7 +239,7 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
   return (
     <div style={{ 
       width: '100%', 
-      height: 400, 
+      height: 500, 
       paddingTop: "20px", 
       position: 'relative',
       userSelect: 'none', /* Prevent text selection */
@@ -221,13 +250,13 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
       <ResponsiveContainer width="100%" height="100%" className="chart-container" ref={chartRef}>
         <LineChart
           data={combinedData}
-          margin={{ top: 40, right: 30, left: 20, bottom: 20 }}
+          margin={{ top: 40, right: 60, left: 60, bottom: 20 }}
           overflow="visible"
         >
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             dataKey="time"
-            label={{ value: 'Time (months)', position: 'insideBottom', dy: 10 }}
+            label={{ value: 'Time after deployment (months)', position: 'insideBottom', dy: 30 }}
             domain={[0.1, maxTimeMonths]}
             // scale="log"
             type="number"
@@ -237,7 +266,7 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
             tick={{ fontSize: 15}}
           />
           <YAxis
-            domain={[0, Math.max(maxYValue * 1.1, unacceptableRiskThreshold * 1.2)]}
+            domain={[0, Math.max(maxYValue * 1.1)]}
             tickFormatter={(value) => {
               if (value === 0) return '0';
               const magnitude = Math.floor(Math.log10(Math.abs(value)));
@@ -246,17 +275,17 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
             }}
             tick={{ fontSize: 15 }}
             label={{
-              value: 'Annualized Expected Fatalities',
+              value: 'Risk (annualized expected fatalities)',
               angle: -90,
               position: 'insideLeft',
-              dx: -10,
+              dx: -30,
               style: { textAnchor: 'middle' }
             }}
           />
           <Tooltip 
             formatter={(value, name) => {
-              if (name === 'Standard Model') return ['Risk: ' + (value ? value.toFixed(3) : 'N/A'), name];
-              if (name === 'With Jailbreak') return ['Risk: ' + (value ? value.toFixed(3) : 'N/A'), name];
+              if (name === 'Annualized risk post deployment (no jailbreak)') return ['Risk: ' + value.toFixed(3), name];
+              if (name === 'Annualized risk post deployment (after universal jailbreak method becomes available)') return ['Risk: ' + value.toFixed(3), name];
               return [value, name];
             }}
             labelFormatter={(label) => `Time: ${parseFloat(label).toFixed(2)} months`}
@@ -268,7 +297,7 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
             verticalAlign="bottom"
             align="center"
             wrapperStyle={{
-              paddingTop: 40,
+              paddingTop: 60,
               paddingBottom: 20
             //   marginTop: 40,
             //   paddingBottom: 20
@@ -284,11 +313,11 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
               x1={firstJailbreakPoint.time} 
               x2={intersectionPoint.time}
               y1={0}
-              y2={maxYValue} /* Using a high fixed value to ensure it covers the graph */
-              fill="#ffff00"
+              y2={maxYValue * 1.1} /* Using a high fixed value to ensure it covers the graph */
+              fill="#F3FFFB"
               fillOpacity={0.3}
-              stroke="#ffcc00"
-              strokeOpacity={0.5}
+              stroke="#6CD5B2"
+              strokeOpacity={1}
               strokeDasharray="3 3"
               ifOverflow="visible"
             >
@@ -298,19 +327,20 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
           {/* Interactive vertical line for jailbreak start */}
           <ReferenceLine
             x={localJailbreakTime}
-            stroke="#8884d8"
+            stroke="#197052"
             strokeWidth={2}
             strokeDasharray="5 5"
             ifOverflow="visible"
             style={{ cursor: 'ew-resize' }}
           >
             <Label
-              value="Drag me 👋"
-              position="top"
-              fill="#8884d8"
-              fontSize={14}
-              fontWeight="bold"
-              offset={10}
+              value="(Drag me 👋)"
+              position="insideTopLeft"
+              fill="#197052"
+              fontSize={16}
+              fontStyle="italic"
+              fontWeight="normal"
+              offset={5}
             />
           </ReferenceLine>
           
@@ -331,27 +361,18 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
             strokeDasharray="3 3"
           >
             <Label 
-              content={({ viewBox }) => {
-                const thresholdValue = (() => {
-                  if (unacceptableRiskThreshold === 0) return '0';
-                  const magnitude = Math.floor(Math.log10(Math.abs(unacceptableRiskThreshold)));
-                  const scale = Math.pow(10, -magnitude + 1);
-                  return (Math.round(unacceptableRiskThreshold * scale) / scale).toString();
-                })();
-                return (
-                  <text x={viewBox.x + 5} y={viewBox.y - 5} fontSize="14">
-                    <tspan fill="#ff0000">Unacceptable Risk Threshold:</tspan>
-                    <tspan fill="#000000"> {thresholdValue} (1.5x the existing level of risk)</tspan>
-                  </text>
-                );
-              }}
+              offset={15}
+              fill="#ff0000"
+              fontSize={16}
+              fontWeight="normal"
               position="insideBottomLeft"
+              value="Unacceptable risk threshold"
             />
           </ReferenceLine>
           <Line
             type="monotone"
             dataKey="mainlineRisk"
-            name="Standard Model"
+            name="Risk post deployment (w/o jailbreak)"
             stroke="#8884d8"
             dot={false}
             strokeWidth={2}
@@ -361,7 +382,7 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
           <Line
             type="monotone"
             dataKey="jailbreakRisk"
-            name="With Jailbreak"
+            name="Risk post deployment (w/ jailbreak)"
             stroke="#ff7300"
             strokeDasharray="5 5"
             dot={false}
@@ -381,30 +402,30 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, onJailbrea
             >
               <Label
                 value="Universal jailbreak emerges"
-                position="top"
-                offset={10}
+                position="insideBottomRight"
+                offset={15}
                 fill="#ff7300"
-                fontSize={12}
-                fontWeight="bold"
+                fontSize={16}
+                fontWeight="normal"
               />
             </ReferenceDot>
           )}
           
           {firstJailbreakPoint && intersectionPoint && (
             <ReferenceDot
-              x={(firstJailbreakPoint.time + intersectionPoint.time) / 2} /* Centered between start and end of window */
-              y={maxYValue}
+              x={(intersectionPoint.time)} /* Centered between start and end of window */
+              y={maxYValue * 1.1}
               r={0} /* Invisible dot */
               fill="transparent"
               stroke="none"
             >
               <Label
-                value={`Window to React and Mitigate Risk: ${(intersectionPoint.time - firstJailbreakPoint.time).toFixed(2)} months`}
+                value={`Window to respond and correct deployment: ${(intersectionPoint.time - firstJailbreakPoint.time).toFixed(2)} months`}
                 position="top"
-                offset={10}
-                fill="#00000"
-                fontSize={12}
-                fontWeight="bold"
+                offset={15}
+                fill="#197052"
+                fontSize={16}
+                fontWeight="normal"
                 style={{ 
                   backgroundColor: "#ffffcc", 
                   padding: "3px 6px", 

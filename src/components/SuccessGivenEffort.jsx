@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from "react";
 import {
   LineChart,
   Line,
@@ -7,17 +6,17 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend
-} from 'recharts';
-import { generateCurvePoints } from '../utils/curves.js';
-import { maxTimeMonths } from '../App.js';
-import FormField from './FormField';
-import FormContainer from './FormContainer';
-import Card from './Card';
+  Legend,
+} from "recharts";
+import { generateCurvePoints } from "../utils/curves.js";
+import { maxTimeMonths } from "../App.js";
+import FormField from "./FormField";
+import FormContainer from "./FormContainer";
+import Card from "./Card";
+// import { ANCHOR_MONTHS } from "../App.js";
 
-const ANCHOR_MONTHS = [3, 12, 36];
-
-
+// var anchorMonths = ANCHOR_MONTHS.slice(0, 3);
+const ANCHOR_MONTHS = [2, 6, 24];
 
 // const generateData = (parameters) => {
 //   const points = [];
@@ -51,30 +50,45 @@ const ANCHOR_MONTHS = [3, 12, 36];
 //   return points;
 // };
 
-const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Success Probability', hideLabels = false, initialValues, color = '#2ecc71', baselineValues, preMitigationValues, tooltipDescription = "These parameters control the probability of an attacker succeeding at different points in time. Each parameter represents the probability of success after a specific number of months of effort." }) => {
+const SuccessGivenEffort = ({
+  onChange,
+  data,
+  readOnly,
+  title = "Baseline Success Probability",
+  hideLabels = false,
+  initialValues,
+  color = "#2ecc71",
+  baselineValues,
+  preMitigationValues,
+  tooltipDescription = "These parameters control the probability of an attacker succeeding at different points in time. Each parameter represents the probability of success after a specific number of months of effort.",
+}) => {
   const [width, setWidth] = useState(Math.min(400, window.innerWidth - 40));
 
   useEffect(() => {
     const handleResize = () => {
       setWidth(Math.min(400, window.innerWidth - 40));
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // Values shown in the input fields
-  const [inputValues, setInputValues] = useState(initialValues || {
-    successanch1: 0.1,
-    successanch2: 3,
-    successanch3: 10,
-  });
+  const [inputValues, setInputValues] = useState(
+    initialValues || {
+      successanch1: 0.1,
+      successanch2: 3,
+      successanch3: 10,
+    }
+  );
 
   // Values used for the chart and calculations
-  const [submittedValues, setSubmittedValues] = useState(initialValues || {
-    successanch1: 0.1,
-    successanch2: 3,
-    successanch3: 10,
-  });
+  const [submittedValues, setSubmittedValues] = useState(
+    initialValues || {
+      successanch1: 0.1,
+      successanch2: 3,
+      successanch3: 10,
+    }
+  );
 
   // Initialize data on mount
   useEffect(() => {
@@ -84,16 +98,16 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (key, value) => {
-    setInputValues(prev => ({
+    setInputValues((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
   const handleParameterChange = (key, value) => {
     const newParams = {
       ...submittedValues,
-      [key]: value
+      [key]: value,
     };
     setSubmittedValues(newParams);
     if (onChange) onChange(newParams);
@@ -106,17 +120,29 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
 
   // Calculate max y-value from both curves
   const maxY = useMemo(() => {
-    const baselineMax = baselineValues ? generateCurvePoints(baselineValues).reduce((max, point) => Math.max(max, point.successProbability), 0) : 0;
-    const preMitigationMax = preMitigationValues ? generateCurvePoints(preMitigationValues).reduce((max, point) => Math.max(max, point.successProbability), 0) : 0;
-    const currentMax = data ? data.reduce((max, point) => Math.max(max, point.successProbability), 0) : 0;
+    const baselineMax = baselineValues
+      ? generateCurvePoints(baselineValues).reduce(
+          (max, point) => Math.max(max, point.successProbability),
+          0
+        )
+      : 0;
+    const preMitigationMax = preMitigationValues
+      ? generateCurvePoints(preMitigationValues).reduce(
+          (max, point) => Math.max(max, point.successProbability),
+          0
+        )
+      : 0;
+    const currentMax = data
+      ? data.reduce((max, point) => Math.max(max, point.successProbability), 0)
+      : 0;
     return Math.max(0.2, baselineMax, preMitigationMax, currentMax);
   }, [baselineValues, preMitigationValues, data]);
 
   return (
-    <div 
-      style={{ 
-        display: "flex", 
-        flexDirection: "column", 
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#FBFBFB",
@@ -124,14 +150,15 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
         padding: "clamp(10px, 2vw, 20px)",
         margin: "clamp(5px, 1vw, 10px)",
         boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
-      }}>
+      }}
+    >
       {!readOnly && (
         <>
-          <FormContainer 
-            title={title} 
+          <FormContainer
+            title={title}
             style={{ fontSize: "12px", padding: "10px" }}
-            tooltipDescription={tooltipDescription}>
-
+            tooltipDescription={tooltipDescription}
+          >
             {ANCHOR_MONTHS.map((month, index) => (
               <FormField
                 key={month}
@@ -142,18 +169,24 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
                 min={0}
                 max={100}
                 value={inputValues[`successanch${index + 1}`]}
-                onChange={(value) => handleInputChange(`successanch${index + 1}`, value)}
-                onSubmit={(value) => handleParameterChange(`successanch${index + 1}`, value)}
+                onChange={(value) =>
+                  handleInputChange(`successanch${index + 1}`, value)
+                }
+                onSubmit={(value) =>
+                  handleParameterChange(`successanch${index + 1}`, value)
+                }
               />
             ))}
           </FormContainer>
         </>
       )}
-      <div style={{ 
-        width: "min(400px, 100%)", 
-        marginTop: "clamp(3px, 0.5vw, 5px)", 
-        marginBottom: "clamp(5px, 1vw, 10px)" 
-      }}>
+      <div
+        style={{
+          width: "min(400px, 100%)",
+          marginTop: "clamp(3px, 0.5vw, 5px)",
+          marginBottom: "clamp(5px, 1vw, 10px)",
+        }}
+      >
         <LineChart
           width={width}
           height={350}
@@ -166,12 +199,12 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
             scale="log"
             domain={[0.1, maxTimeMonths]}
             type="number"
-            ticks={[0.1, 1, 3, 6, 12, 24, 36, maxTimeMonths]}
+            ticks={[0.1, 1, 3, 6, 12, 24, 48]}
             label={{
               value: "Months spent on attempt (log scale)",
               position: "bottom",
               offset: 20,
-              style: { fontSize: 12 }
+              style: { fontSize: 12 },
             }}
             tick={{ fontSize: 12 }}
             tickFormatter={(value) => value.toFixed(1)}
@@ -184,14 +217,19 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
               angle: -90,
               position: "center",
               dx: -35,
-              style: { fontSize: 12 }
+              style: { fontSize: 12 },
             }}
             tick={{ fontSize: 12 }}
           />
           <Tooltip
-            formatter={(value, name) => [typeof value === 'number' ? value.toFixed(4) : value, name]}
+            formatter={(value, name) => [
+              typeof value === "number" ? value.toFixed(4) : value,
+              name,
+            ]}
             labelFormatter={(value) =>
-              `${typeof value === 'number' ? value.toFixed(1) : value} months of effort`
+              `${
+                typeof value === "number" ? value.toFixed(1) : value
+              } months of effort`
             }
             contentStyle={{ fontSize: 12 }}
             itemStyle={{ fontSize: 12 }}
@@ -203,7 +241,7 @@ const SuccessGivenEffort = ({ onChange, data, readOnly, title = 'Baseline Succes
             wrapperStyle={{
               paddingTop: "15px",
               paddingBottom: "5px",
-              bottom: 0
+              bottom: 0,
             }}
             fontSize={12}
           />

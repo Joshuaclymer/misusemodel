@@ -6,7 +6,8 @@ const ExpectedAnnualFatalities = ({
   titleColor,
   expectedAnnualFatalities,
   baseline = null,
-  width = "clamp(280px, 100%, 320px)"
+  width = "clamp(280px, 100%, 320px)",
+  unacceptableRiskContribution = 30000
 }) => {
 
   if (baseline === null) {
@@ -34,12 +35,15 @@ const ExpectedAnnualFatalities = ({
     );
   } else {
       let string = "";
-      if (expectedAnnualFatalities <= baseline * 1.25 && expectedAnnualFatalities >= baseline ) {
+      console.log("risk line", baseline + unacceptableRiskContribution);
+      console.log("expectedAnnualFatalities", expectedAnnualFatalities)
+      console.log("baseline", (expectedAnnualFatalities <= baseline + unacceptableRiskContribution) && expectedAnnualFatalities >= baseline)
+      if ((expectedAnnualFatalities <= baseline + unacceptableRiskContribution) && expectedAnnualFatalities >= baseline ) {
         string = "✅ (~= baseline)";
       } else if (expectedAnnualFatalities < baseline) {
         string = "✅ (< baseline)";
       } else {
-        string = "⚠️ (> baseline)";
+        string = "⚠️ (unacceptable)";
       }
       return (<div style={{ 
           backgroundColor: "#FBFBFB",

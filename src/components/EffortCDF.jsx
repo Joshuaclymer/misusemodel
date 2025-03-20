@@ -4,7 +4,9 @@ import { fitEffortCDF } from '../utils/curves.js';
 import FormField from './FormField';
 import FormContainer from './FormContainer';
 
-const ANCHOR_MONTHS = [3, 12, 36, 60];
+import {maxTimeMonths} from '../App';
+
+const ANCHOR_MONTHS = [2, 6, 24, 48];
 
 
 
@@ -42,9 +44,9 @@ export const generateCDFData = (parameters) => {
   // Generate points
   for (let i = 0; i <= 100; i++) {
     const x = i / 100;
-    // Use log scale from 0.1 months to 60 months (5 years)
+    // Use log scale from 0.1 months to maxTimeMonths (5 years)
     const months = Math.exp(
-      Math.log(0.1) + x * (Math.log(60) - Math.log(0.1))
+      Math.log(0.1) + x * (Math.log(maxTimeMonths) - Math.log(0.1))
     );
 
     points.push({
@@ -59,8 +61,8 @@ export const generateCDFData = (parameters) => {
 const EffortCDF = ({ onChange }) => {
   const [parameters, setParameters] = useState({
     effortanch1: 90,
-    effortanch2: 95,
-    effortanch3: 98,
+    effortanch2: 98,
+    effortanch3: 100,
     effortanch4: 100
   });
 
