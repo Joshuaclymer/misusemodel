@@ -833,7 +833,7 @@ function App() {
                   <Card>
                     <div style={{ padding: '10px', marginBottom: '10px' }}>
                       <label htmlFor="unacceptableRiskContribution" style={{ marginRight: '10px', fontWeight: 'normal' }}>
-                        Unacceptable Risk Threshold (annual fatalities):
+                        Unacceptable risk contribution (annual fatalities):
                       </label>
                       <input
                         id="unacceptableRiskContribution"
