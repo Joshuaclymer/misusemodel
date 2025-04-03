@@ -24,7 +24,7 @@ const ExpectedAnnualFatalities = ({
           textAlign: "center"
         }}>
         <h3 style={{ margin: "0", fontSize: "16px" }}>
-          <span style={{ color: titleColor }}>{titleWord}</span> expected annual fatalities:
+          <span style={{ color: titleColor }}>{titleWord}</span> expected annual harm (e.g. lives lost):
         </h3>
         {expectedAnnualFatalities == null ? null : (
           <div style={{ fontSize: "16px", fontWeight: "bold", color: titleColor, marginTop: "6%" }}>
@@ -57,7 +57,7 @@ const ExpectedAnnualFatalities = ({
           textAlign: "center"
         }}>
         <h3 style={{ margin: "0", fontSize: "20px" }}>
-          <span style={{ color: titleColor }}>{titleWord}</span> expected annual fatalities:
+          <span style={{ color: titleColor }}>{titleWord}</span> expected annual harm (e.g. lives lost):
         </h3>
         {expectedAnnualFatalities == null ? null : (
           <div style={{ fontSize: "20px", fontWeight: "bold",  marginTop: "8%" }}>

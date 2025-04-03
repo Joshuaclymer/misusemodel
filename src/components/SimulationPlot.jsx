@@ -275,7 +275,7 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, unacceptab
             }}
             tick={{ fontSize: 15 }}
             label={{
-              value: 'Risk (annualized expected fatalities)',
+              value: 'Risk (annualized expected harm)',
               angle: -90,
               position: 'insideLeft',
               dx: -30,

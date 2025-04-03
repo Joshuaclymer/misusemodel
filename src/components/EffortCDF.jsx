@@ -125,7 +125,7 @@ const EffortCDF = ({ onChange }) => {
     >
       <FormContainer 
         title="Effort Distribution Parameters"
-        tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to develop a Pandemic Potential Pathogen will involve less than or equal to the amount of time indicated. An 'attempt' must involve at least two weeks of earnest effort. We assume this distribution is fixed and is unaffected by the deployment of the AI assistant."
+        tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to cause a large-scale harm will involve less than or equal to the amount of time indicated. An 'attempt' must involve at least two weeks of earnest effort. We assume this distribution is fixed and is unaffected by the deployment of the AI assistant."
       >
         {ANCHOR_MONTHS.slice(0, 3).map((month, index) => (
           <FormField

@@ -13,7 +13,7 @@ import { maxTimeMonths } from '../App.js';
 
 const ANCHOR_MONTHS = [3, 12, 36];
 
-const ComparisonSuccessGivenEffort = ({ onChange, postMitigationData, baselineData, readOnly, preMitigationData, tooltipDescription = "The distribution below shows the probability that a novice attempt to synthesize a Pandemic Potential Pathogen succeeds given the amount of time spent on the attempt. The solid blue line shows the post-mitigation success probability, while the dashed lines show the baseline and pre-mitigation probabilities for comparison." }) => {
+const ComparisonSuccessGivenEffort = ({ onChange, postMitigationData, baselineData, readOnly, preMitigationData, tooltipDescription = "The distribution below shows the probability that a novice attempt to cause a large-scale harm succeeds given the amount of time spent on the attempt. The solid blue line shows the post-mitigation success probability, while the dashed lines show the baseline and pre-mitigation probabilities for comparison." }) => {
   console.log("preMitigationData", preMitigationData);
   console.log("postMitigationData", postMitigationData);
   console.log("baselineData", baselineData);
