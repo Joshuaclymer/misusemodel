@@ -876,7 +876,7 @@ function App() {
       </div>
       <div style={{ 
         textAlign: "center", 
-        maxWidth: "600px", 
+        maxWidth: "800px", 
         width: "90%", 
         display: "inline-block", 
         margin: "20px auto",
