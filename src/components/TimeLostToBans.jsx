@@ -154,7 +154,7 @@ const fitBanCurveWithCache = (
   return Array.from({ length: 1001 }, (_, i) => getTimeForQuery(i));
 };
 
-const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30, tooltipDescription = "This plot is estimated by experts. It shows the amount of time a novice bio misuse actor would likely need to spend to reacquire access to the AI assistant after being banned." }) => {
+const TimeLostToBans = ({ onMouseUp, queriesPerMonth = 30, tooltipDescription = "This plot is estimated by experts. It shows the amount of time a novice misuse actor would likely need to spend to reacquire access to the AI assistant after being banned." }) => {
   // Refs for caching and DOM elements
   const pathCache = useRef({ points: null, path: null, length: null });
   const timeInterpolatorCache = useRef({ points: null, interpolator: null });

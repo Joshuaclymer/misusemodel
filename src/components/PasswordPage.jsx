@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-const PasswordPage = ({ onCorrectPassword, requirePassword = true }) => {
+const PasswordPage = ({ onCorrectPassword, requirePassword = false }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 

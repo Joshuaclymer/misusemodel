@@ -37,7 +37,7 @@ const ParameterSelector = ({ inputParams, setInputParams, refreshPage }) => {
               <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
                 i
                 <span className="tooltip">
-                The number of annual novice attempts to develop a Pandemic Potential Pathogen. An "attempt" must involve at least two weeks of earnest effort.
+                The number of annual novice attempts to cause a large-scale harm. An "attempt" must involve at least two weeks of earnest effort.
                 </span>
               </div>
             </label>
@@ -79,12 +79,12 @@ const ParameterSelector = ({ inputParams, setInputParams, refreshPage }) => {
             >
             <label style={{ fontSize: "12px", fontWeight: "500", color: "#1a2a3a", width: "220px", textAlign: "left", display: "flex", alignItems: "center", gap: "6px" }}>
               <span style={{ whiteSpace: "nowrap" }}>
-              Expected Fatalities Per Success
+              Expected Harm Per Success
               </span>
               <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
                 i
                 <span className="tooltip">
-                  The number of expected fatalities if an novice attempt succeeds and results in the deployment of a Pandemic Potential Pathogen.
+                  The expected harm if a novice attempt succeeds (e.g. financial damage or lives lost).
                 </span>
               </div>
             </label>
@@ -131,7 +131,7 @@ const ParameterSelector = ({ inputParams, setInputParams, refreshPage }) => {
               <div className="info-icon-tooltip" style={{ flexShrink: 0 }}>
                 i
                 <span className="tooltip">
-                  The number of queries to the AI assistant that a novice bio misuse actor would benefit from per month if given access to the unmitigated AI assistant. We assume that the benefit of executing queries above this frequency quickly trails off.
+                  The number of queries to the AI assistant that a novice misuse actor would benefit from per month if given access to the unmitigated AI assistant. We assume that the benefit of executing queries above this frequency quickly trails off.
                 </span>
               </div>
             </label>

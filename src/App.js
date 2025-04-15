@@ -168,7 +168,7 @@ function App() {
     <div className="App">
       <div>
         <h1 style={{ textAlign: "center", margin: "40px" }}>
-          Interactive AI biological misuse risk model
+          Interactive AI misuse risk model
         </h1>
         <div style={{ 
           textAlign: "center", 
@@ -178,10 +178,7 @@ function App() {
           display: "inline-block", 
           margin: "0 auto 40px"
         }}>
-          <p>The following is an interactive model of AI biorisks described in the research paper "A
-          Safety Case Sketch for Evaluating Safeguards Against AI-Enabled
-          Bioterrorism." The model leverages evidence from <span style={{ fontWeight: "bold" , color: "#1A4F76"}}>expert surveys</span>, <span style={{ fontWeight: "bold" , color: "#AF7B29"}}>capability evaluations</span>, and <span style={{ fontWeight: "bold" , color: "#59095E"}}>safeguards evaluations</span> to estimate the annual expected fatalities caused by pandemic pathogens developed by novices with the help of a particular AI assistant. 
-          <span style={{ fontWeight: "bold" , color: "black"}}> All of these parameters are illustrative and in practice would need to be specified with real data and expert input. </span> Biorisk is a concrete application of this model, but the model can also be applied to other AI misuse risks.
+          <p>The following is an interactive model of AI misuse risks described in the research paper "An Example Safety Case for Safeguards Against Misuse." The model leverages evidence from <span style={{ fontWeight: "bold" , color: "#1A4F76"}}>expert surveys</span>, <span style={{ fontWeight: "bold" , color: "#AF7B29"}}>capability evaluations</span>, and <span style={{ fontWeight: "bold" , color: "#59095E"}}>safeguards evaluations</span> to estimate the annual expected harms caused by novice actors with the help of a particular AI assistant. 
           </p>
         </div>
         <form
@@ -269,7 +266,7 @@ function App() {
                             initialValues={baselineTextFields}
                             baselineValues={baselineTextFields}
                             preMitigationValues={preMitigationTextFields}
-                            tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to develop a Pandemic Potential Pathogen will succeed given varying levels of time spent, where an 'attempt' must involve at least two weeks of earnest effort. This curve assumes conditions *prior to the deployment of the AI assistant in question.*"
+                            tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to cause a large-scale harm will succeed given varying levels of time spent, where an 'attempt' must involve at least two weeks of earnest effort. This curve assumes conditions *prior to the deployment of the AI assistant in question.*"
                           />
                         </div>
                       </ArcherElement>
@@ -483,7 +480,7 @@ function App() {
                                 initialValues={preMitigationTextFields}
                                 baselineValues={baselineTextFields}
                                 preMitigationValues={preMitigationTextFields}
-                                tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to develop a Pandemic Potential Pathogen will succeed given varying levels of time spent, where an 'attempt' must involve at least two weeks of earnest effort. This curve assumes conditions where the AI assistant in question is deployed *without safeguards.*"
+                                tooltipDescription="The distribution below indicates the probability that a novice 'attempt' to cause a large-scale harm will succeed given varying levels of time spent, where an 'attempt' must involve at least two weeks of earnest effort. This curve assumes conditions where the AI assistant in question is deployed *without safeguards.*"
                               />
                             </div>
                           </ArcherElement>
@@ -643,7 +640,7 @@ function App() {
                                 queriesPerMonth={
                                   inputParams.queriesAttackerExecutesPerMonth
                                 }
-                                tooltipDescription="The results of a safeguards evaluation. A red team tries to obtain responses from an AI assistant to a representative set of bio misuse queries. The y-axis shows the average number of queries executed by members of the red team as a function of effort expended."
+                                tooltipDescription="The results of a safeguards evaluation. A red team tries to obtain responses from an AI assistant to a representative set of misuse queries. The y-axis shows the average number of queries executed by members of the red team as a function of effort expended."
                                 onMouseUp={(data) => {
                                   // Get all time points at once using the efficient version
                                   const timeForQueries = fitQueriesCurve(data);
@@ -833,7 +830,7 @@ function App() {
                   <Card>
                     <div style={{ padding: '10px', marginBottom: '10px' }}>
                       <label htmlFor="unacceptableRiskContribution" style={{ marginRight: '10px', fontWeight: 'normal' }}>
-                        Unacceptable risk contribution (annual fatalities):
+                        Unacceptable risk contribution (annual expected harm):
                       </label>
                       <input
                         id="unacceptableRiskContribution"
@@ -887,7 +884,7 @@ function App() {
       }}>
         <h3>A formal description of the model:</h3>
         <img 
-          src="biomodel.png" 
+          src="model.png" 
           alt="Model Description" 
           style={{
             width: "100%",

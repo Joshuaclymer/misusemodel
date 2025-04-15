@@ -15,7 +15,7 @@ const QueriesVsTimeWithBans = ({
   timeToExecuteQueries, // timeToExecuteQueries
   bansGivenQueries, // from BansVsQueries
   timeLostGivenBans = [], // from TimeLostToBans
-  tooltipDescription = "This plot synthesizes the other three plots. It shows the number of bio misuse queries members of the red team obtain responses to over time, factoring in the additional time that a real misuse actor would lose due to being repeatedly banned."
+  tooltipDescription = "This plot synthesizes the other three plots. It shows the number of harmful queries members of the red team obtain responses to over time, factoring in the additional time that a real misuse actor would lose due to being repeatedly banned."
 }) => {
   let timeToExecuteQueriesDisplayed = calculateTimeToExecuteQueriesGivenBans({
     bansGivenQueries,
