@@ -366,7 +366,7 @@ const SimulationPlot = ({ outputParams, maxTimeMonths, jailbreakTime, unacceptab
               fontSize={16}
               fontWeight="normal"
               position="insideBottomLeft"
-              value="Unacceptable risk threshold"
+              value="Risk threshold"
             />
           </ReferenceLine>
           <Line
